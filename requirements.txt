@@ -1,0 +1,4 @@
+moviepy
+numpy
+Pillow
+click
