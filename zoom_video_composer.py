@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# zoom_video_composer.py v0.1.0
+# https://github.com/mwydmuch/ZoomVideoComposer
+
 # Copyright (c) 2023 Marek Wydmuch
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,8 +25,7 @@
 
 
 import click
-from PIL import Image, ImageOps
-import numpy as np
+from PIL import Image
 import os
 import shutil
 from hashlib import md5

@@ -1,4 +1,6 @@
 moviepy
 numpy
 Pillow
+joblib
 click
+tqdm
