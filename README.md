@@ -38,37 +38,52 @@ Usage: zoom_video_composer.py [OPTIONS] IMAGE_PATHS...
   Compose a zoom video from multiple provided images.
 
 Options:
-  -z, --zoom FLOAT                Zoom factor/ratio between images. [default:
+  -a, --audio_path FILE           Audio file path that will be added to the
+                                  video.
+  -z, --zoom FLOAT                Zoom factor/ratio between images.  [default:
                                   2.0]
-  -d, --duration FLOAT            Duration of the video in seconds. [default:
+  -d, --duration FLOAT            Duration of the video in seconds.  [default:
                                   10.0]
   -e, --easing [linear|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic]
-                                  Easing function. [default: easeInOutSine]
+                                  Easing function.  [default: easeInOutSine]
   -r, --direction [in|out|inout|outin]
                                   Zoom direction. Inout and outin combine both
-                                  directions. [default: out]
-  -o, --output PATH               Output video file. [default: output.mp4]
-  -t INTEGER                      Number of threads to use to generate frames.
+                                  directions.  [default: out]
+  -o, --output PATH               Output video file.  [default: output.mp4]
+  -t, --threads INTEGER           Number of threads to use to generate frames.
                                   Use values <= 0 for number of available
                                   threads on your machine minus the provided
-                                  absolute value. [default: -1]
+                                  absolute value.  [default: -1]
   --tmp-dir PATH                  Temporary directory to store frames.
                                   [default: tmp]
   -f, --fps INTEGER               Frames per second of the output video.
                                   [default: 30]
-  -w, --width INTEGER             Width of the output video. [default: 1024]
-  -h, --height INTEGER            Height of the output video. [default: 1024]
+  -w, --width FLOAT               Width of the output video. Values > 1 are
+                                  interpreted as specific sizes in pixels.
+                                  Values <= 1 are interpreted as a fraction of
+                                  the width of the first image.  [default: 1]
+  -h, --height FLOAT              Height of the output video. Values > 1 are
+                                  interpreted as specific sizes in pixels.
+                                  Values <= 1 are interpreted as a fraction of
+                                  the height of the first image.  [default: 1]
   -s, --resampling [nearest|box|bilinear|hamming|bicubic|lanczos]
                                   Resampling techique to use when resizing
-                                  images. [default: lanczos]
-  -m, --margin INTEGER            Margin in pixels to cut from the edges of
-                                  the images for better blending. [default:
-                                  50]
-  --keep-tmp                      Keep temporary directory. Otherwise, it will
-                                  be deleted after the video is generated.
-                                  [default: False]
-  --reverse-images                Reverse the order of the images. [default:
-                                  False]
+                                  images.  [default: lanczos]
+  -m, --margin FLOAT              Size of the margin to cut from the edges of
+                                  each image for better blending with the
+                                  next/previous image. Values > 1 are
+                                  interpreted as specific sizes in pixels.
+                                  Values <= 1 are interpreted as a fraction of
+                                  the smaller size of the first image.
+                                  [default: 0.05]
+  --keep-frames                   Keep frames in the temporary directory.
+                                  Otherwise, it will be deleted after the
+                                  video is generated.
+  --skip-video-generation         Skip video generation. Useful if you only
+                                  want to generate the frames. This option
+                                  will keep the temporary directory similar to
+                                  --keep-frames flag.
+  --reverse-images                Reverse the order of the images.
   --help                          Show this message and exit.
 ```
 
