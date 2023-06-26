@@ -244,15 +244,25 @@ def zoom_video_composer(
 
     # Blend images (take care of margins)
     click.echo(f"Blending {len(images)} images ...")
-    for i in trange(1, num_images):
+    for i in trange(1, num_images + 1):
         inner_image = images[i]
         outer_image = images[i - 1]
         inner_image = inner_image.crop(
             (margin, margin, inner_image.width - margin, inner_image.height - margin)
         )
+
+        # Some coloring for debugging purposes
+        # debug_colors = ['red', 'green', 'blue', 'yellow', 'cyan', 'magenta']
+        # layer = Image.new('RGB', inner_image.size, debug_colors[i % 6])
+        # inner_image = Image.blend(inner_image, layer, 0.25)
+
         image = zoom_crop(outer_image, zoom, resampling_func)
         image.paste(inner_image, (margin, margin))
         images[i] = image
+
+        # Save image for debugging purposes
+        #image_path = os.path.join(tmp_dir_hash, f"_blending_step_1_{i:06d}.png")
+        #image.save(image_path)
 
     images_resized = [resize_scale(i, zoom, resampling_func) for i in images]
     for i in trange(num_images, 0, -1):
@@ -273,6 +283,10 @@ def zoom_video_composer(
             ),
         )
         images_resized[i] = image
+
+        # Save image for debugging purposes
+        #image_path = os.path.join(tmp_dir_hash, f"_blending_step_2_{i:06d}.png")
+        #image.save(image_path)
 
     images = images_resized
 
@@ -302,19 +316,19 @@ def zoom_video_composer(
                 )
         else:
             raise ValueError(f"Unsupported direction: {direction}")
-
+        
         current_zoom_log = log(current_zoom, zoom)
-        local_zoom = zoom ** (current_zoom_log % 1)
         current_image_idx = ceil(log(current_zoom, zoom))
+        local_zoom = zoom ** (current_zoom_log - current_image_idx + 1)
 
-        if local_zoom == 1.0:
-            frame = images[current_image_idx]
+        if current_zoom == 1.0:
+            frame = images[0]
         else:
             frame = images[current_image_idx]
             frame = zoom_crop(frame, local_zoom, resampling_func)
 
         frame = frame.resize((width, height), resampling_func)
-        frame_path = os.path.join(tmp_dir_hash, f"{i}.png")
+        frame_path = os.path.join(tmp_dir_hash, f"{i:06d}.png")
         frame.save(frame_path)
 
     n_jobs = threads if threads > 0 else cpu_count() - threads
@@ -323,7 +337,7 @@ def zoom_video_composer(
 
     # Write video
     click.echo(f"Writing video to: {output} ...")
-    image_files = [os.path.join(tmp_dir_hash, f"{x}.png") for x in range(num_frames)]
+    image_files = [os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)]
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
     clip.write_videofile(output)
 
