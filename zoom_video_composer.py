@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.1.0
+# zoom_video_composer.py v0.2.0
 # https://github.com/mwydmuch/ZoomVideoComposer
 
 # Copyright (c) 2023 Marek Wydmuch
@@ -33,7 +33,8 @@ from multiprocessing import cpu_count
 from joblib import Parallel, delayed
 from tqdm import trange
 from math import log, ceil, pow, sin, cos, pi
-import moviepy.video.io.ImageSequenceClip
+from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
+from moviepy.editor import VideoFileClip, AudioFileClip
 
 
 EASING_FUNCTIONS = {
@@ -93,6 +94,12 @@ def zoom_out(zoom, easing_func, i, num_frames, num_images):
     return zoom ** ((1 - easing_func(i / (num_frames - 1))) * num_images)
 
 
+def get_px_or_fraction(value, reference_value):
+    if value <= 1:
+        value = reference_value * value
+    return int(value)
+
+
 @click.command()
 @click.argument(
     "image_paths",
@@ -101,95 +108,145 @@ def zoom_out(zoom, easing_func, i, num_frames, num_images):
     required=True,
 )
 @click.option(
-    "-z", "--zoom", type=float, default=2.0, help="Zoom factor/ratio between images.", show_default=True
+    "-a",
+    "--audio_path",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Audio file path that will be added to the video.",
+)
+@click.option(
+    "-z",
+    "--zoom",
+    type=float,
+    default=2.0,
+    help="Zoom factor/ratio between images.",
+    show_default=True,
 )
 @click.option(
     "-d",
     "--duration",
     type=float,
     default=10.0,
-    help="Duration of the video in seconds.", show_default=True
+    help="Duration of the video in seconds.",
+    show_default=True,
 )
 @click.option(
     "-e",
     "--easing",
     type=click.Choice(list(EASING_FUNCTIONS.keys())),
     default=DEFAULT_EASING_KEY,
-    help="Easing function.", show_default=True
+    help="Easing function.",
+    show_default=True,
 )
 @click.option(
     "-r",
     "--direction",
     type=click.Choice(["in", "out", "inout", "outin"]),
     default="out",
-    help="Zoom direction. Inout and outin combine both directions.", show_default=True
+    help="Zoom direction. Inout and outin combine both directions.",
+    show_default=True,
 )
 @click.option(
-    "-o", "--output", type=click.Path(), default="output.mp4", help="Output video file.", show_default=True
+    "-o",
+    "--output",
+    type=click.Path(),
+    default="output.mp4",
+    help="Output video file.",
+    show_default=True,
 )
 @click.option(
     "-t",
-    "threads",
+    "--threads",
     type=int,
     default=-1,
-    help="Number of threads to use to generate frames. Use values <= 0 for number of available threads on your machine minus the provided absolute value.", show_default=True
+    help="Number of threads to use to generate frames. Use values <= 0 for number of available threads on your machine minus the provided absolute value.",
+    show_default=True,
 )
 @click.option(
     "--tmp-dir",
     type=click.Path(),
     default="tmp",
-    help="Temporary directory to store frames.", show_default=True
+    help="Temporary directory to store frames.",
+    show_default=True,
 )
 @click.option(
-    "-f", "--fps", type=int, default=30, help="Frames per second of the output video.", show_default=True
+    "-f",
+    "--fps",
+    type=int,
+    default=30,
+    help="Frames per second of the output video.",
+    show_default=True,
 )
 @click.option(
-    "-w", "--width", type=int, default=1024, help="Width of the output video.", show_default=True
+    "-w",
+    "--width",
+    type=float,
+    default=1,
+    help="Width of the output video. Values > 1 are interpreted as specific sizes in pixels. Values <= 1 are interpreted as a fraction of the width of the first image.",
+    show_default=True,
 )
 @click.option(
-    "-h", "--height", type=int, default=1024, help="Height of the output video.", show_default=True
+    "-h",
+    "--height",
+    type=float,
+    default=1,
+    help="Height of the output video. Values > 1 are interpreted as specific sizes in pixels. Values <= 1 are interpreted as a fraction of the height of the first image.",
+    show_default=True,
 )
 @click.option(
     "-s",
     "--resampling",
     type=click.Choice(list(RESAMPLING_FUNCTIONS.keys())),
     default=DEFAULT_RESAMPLING_KEY,
-    help="Resampling techique to use when resizing images.", show_default=True
+    help="Resampling techique to use when resizing images.",
+    show_default=True,
 )
 @click.option(
     "-m",
     "--margin",
-    type=int,
-    default=50,
-    help="Margin in pixels to cut from the edges of the images for better blending.", show_default=True
+    type=float,
+    default=0.05,
+    help="Size of the margin to cut from the edges of each image for better blending with the next/previous image. Values > 1 are interpreted as specific sizes in pixels. Values <= 1 are interpreted as a fraction of the smaller size of the first image.",
+    show_default=True,
 )
 @click.option(
-    "--keep-tmp",
+    "--keep-frames",
     is_flag=True,
     default=False,
-    help="Keep temporary directory. Otherwise, it will be deleted after the video is generated.", show_default=True
+    help="Keep frames in the temporary directory. Otherwise, it will be deleted after the video is generated.",
+    show_default=True,
+)
+@click.option(
+    "--skip-video-generation",
+    is_flag=True,
+    default=False,
+    help="Skip video generation. Useful if you only want to generate the frames. This option will keep the temporary directory similar to --keep-frames flag.",
+    show_default=True,
 )
 @click.option(
     "--reverse-images",
     is_flag=True,
     default=False,
-    help="Reverse the order of the images.", show_default=True
+    help="Reverse the order of the images.",
+    show_default=True,
 )
 def zoom_video_composer(
     image_paths,
+    audio_path=None,
     zoom=2.0,
     duration=10.0,
     easing=DEFAULT_EASING_KEY,
-    direction="in",
+    direction="out",
     output="output.mp4",
     threads=-1,
     tmp_dir="tmp",
     fps=30,
-    width=512,
-    height=512,
+    width=1,
+    height=1,
     resampling=DEFAULT_RESAMPLING_KEY,
-    margin=50,
-    keep_tmp=True,
+    margin=0.05,
+    keep_frames=False,
+    skip_video_generation=False,
     reverse_images=False,
 ):
     """Compose a zoom video from multiple provided images."""
@@ -233,6 +290,10 @@ def zoom_video_composer(
         tmp_dir, md5("".join(image_paths).encode("utf-8")).hexdigest()
     )
 
+    width = get_px_or_fraction(width, images[0].width)
+    height = get_px_or_fraction(height, images[0].height)
+    margin = get_px_or_fraction(margin, min(images[0].width, images[0].height))
+
     # Create tmp dir
     if not os.path.exists(tmp_dir_hash):
         click.echo(f"Creating temporary directory for frames: {tmp_dir} ...")
@@ -263,8 +324,8 @@ def zoom_video_composer(
         images[i] = image
 
         # Save image for debugging purposes
-        #image_path = os.path.join(tmp_dir_hash, f"_blending_step_1_{i:06d}.png")
-        #image.save(image_path)
+        # image_path = os.path.join(tmp_dir_hash, f"_blending_step_1_{i:06d}.png")
+        # image.save(image_path)
 
     images_resized = [resize_scale(i, zoom, resampling_func) for i in images]
     for i in trange(num_images, 0, -1):
@@ -287,8 +348,8 @@ def zoom_video_composer(
         images_resized[i] = image
 
         # Save image for debugging purposes
-        #image_path = os.path.join(tmp_dir_hash, f"_blending_step_2_{i:06d}.png")
-        #image.save(image_path)
+        # image_path = os.path.join(tmp_dir_hash, f"_blending_step_2_{i:06d}.png")
+        # image.save(image_path)
 
     images = images_resized
 
@@ -318,7 +379,7 @@ def zoom_video_composer(
                 )
         else:
             raise ValueError(f"Unsupported direction: {direction}")
-        
+
         current_zoom_log = log(current_zoom, zoom)
         current_image_idx = ceil(log(current_zoom, zoom))
         local_zoom = zoom ** (current_zoom_log - current_image_idx + 1)
@@ -339,12 +400,24 @@ def zoom_video_composer(
 
     # Write video
     click.echo(f"Writing video to: {output} ...")
-    image_files = [os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)]
-    clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
-    clip.write_videofile(output)
+    image_files = [
+        os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)
+    ]
+    video_clip = ImageSequenceClip(image_files, fps=fps)
+    video_write_kwargs = {"codec": "libx264"}
+
+    # Add audio
+    if audio_path:
+        click.echo(f"Adding audio from: {audio_path} ...")
+        audio_clip = AudioFileClip(audio_path)
+        audio_clip = audio_clip.subclip(0, video_clip.end)
+        video_clip = video_clip.set_audio(audio_clip)
+        video_write_kwargs["audio_codec"] = "aac"
+
+    video_clip.write_videofile(output, **video_write_kwargs)
 
     # Remove tmp dir
-    if not keep_tmp:
+    if not keep_frames and not skip_video_generation:
         shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
         if not os.listdir(tmp_dir):
             click.echo(f"Removing empty temporary directory for frames: {tmp_dir} ...")

@@ -161,3 +161,8 @@ cython_debug/
 
 # Mac
 .DS_Store
+
+# Project specific
+tmp
+*.mp4
+
