@@ -13,7 +13,7 @@ Limitations:
 - At the moment, the images need to be perfectly centered (Midjourney 5.2 zoom out feature from time to time shifts the image that is zoomed out, and such images might not look good in the video).
 
 
-I create it for myself to make experimentation with Midjourney easier for me. I've might miss some possible use cases, so if something is not working for you, or you would like to have some feature, please let me know I will try to fix/improve it. Contributions are welcome.
+I create it for myself to make experimentation with Midjourney easier for me. I've might miss some possible use cases, so if something is not working for you, or you would like to have some feature, please let me know I will try to fix/improve it. Contributions are welcome, just open a PR.
 
 
 ## Usage
@@ -22,7 +22,7 @@ To use the script, you need to have Python installed on your machine.
 You can download it [here](https://www.python.org/downloads/) if you are using Windows. 
 MacOS and Linux users should have Python installed by default.
 
-1. Download this repository and open the terminal/command line window in the root of the repository.
+1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.2.0.zip), unpack it, and open the terminal/command line window in the root of the repository.
 
 2. Install the required packages by running the following command in the terminal/cmd window:
 ```
@@ -90,13 +90,13 @@ Options:
 
 ## Example of usage
 
-Run in the root directory of the repository to generate an example video from the images in the `example` directory, a duration of 20 seconds that first zooms out and then back in. The video will be saved in the `example_output.mp4` file.
+Run in the root directory of the repository to generate an example video from the images in the `example` directory, a duration of 20 seconds that first zooms out and then zooms back in. The video will be saved in the `example_output.mp4` file.
 
 ```
 python zoom_video_composer.py example -o example_output.mp4 -d 20 -r outin -e easeInOutSine
 ```
 
-This example takes around 3 minutes to run on my Macbook Air M2. It can be speeded up by reducing the resolution of the output video and selecting faster resampling techniques like `bilinear`. The command below takes around 30 seconds to run on my Macbook Air M2, and can be used for a preview of the video before generating the final version (it reduces resolution to 512x512, framerate to 10 fps and uses faster resampling technique).
+This example takes around 3 minutes to run on my Macbook Air M2. It can be speeded up by reducing the resolution of the output video and selecting faster resampling techniques like `bilinear`. The command below takes around 30 seconds to run on my Macbook Air M2, and can be used for a preview of the video before generating the final version (it reduces resolution to 512x512, framerate to 10 fps and uses a faster resampling technique).
 
 ```
 python zoom_video_composer.py example -o example_output_faster.mp4 -d 20 -r outin -e easeInOutSine -f 10 -w 512 -h 512 -s bilinear
@@ -115,18 +115,18 @@ Thanks to [u/ObiWanCanShowMe](https://www.reddit.com/user/ObiWanCanShowMe/)!
 
 ### Stable Diffusion
 
-To create a zoom out image in Stable Diffusion you can:
+To create a zoom out image in Stable Diffusion, you can:
 1. Create an image.
-2. Outpaint to a multiplier of canvas size (e.g. 2x)
+2. Outpaint to a multiplier of canvas size (e.g., 2x)
 3. Resize down to the original size.
 
 Repeat until you get the desired number of images.
 
 ### Photoshop
 
-You can also create proper images using photoshop:
+You can also create proper images using Photoshop:
 1. Create an image.
-2. Resize an image to a multiplier of canvas size (e.g. 2x) and use generative fill on the empty space
+2. Resize an image to a multiplier of canvas size (e.g., 2x) and use generative fill on the empty space
 3. Resize down to the original size.
 
 Repeat until you get the desired number of images.
