@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.2.0
+# zoom_video_composer.py v0.2.1
 # https://github.com/mwydmuch/ZoomVideoComposer
 
 # Copyright (c) 2023 Marek Wydmuch
@@ -86,12 +86,20 @@ def resize_scale(image, scale, resampling_func=Image.Resampling.LANCZOS):
     return image.resize((int(width * scale), int(height * scale)), resampling_func)
 
 
+def zoom_in_log(easing_func, i, num_frames, num_images):
+    return ((easing_func(i / (num_frames - 1))) * num_images)
+
+
+def zoom_out_log(easing_func, i, num_frames, num_images):
+    return ((1 - easing_func(i / (num_frames - 1))) * num_images)
+
+
 def zoom_in(zoom, easing_func, i, num_frames, num_images):
-    return zoom ** ((easing_func(i / (num_frames - 1))) * num_images)
+    return zoom ** zoom_in_log(easing_func, i, num_frames, num_images)
 
 
 def zoom_out(zoom, easing_func, i, num_frames, num_images):
-    return zoom ** ((1 - easing_func(i / (num_frames - 1))) * num_images)
+    return zoom ** zoom_out_log(easing_func, i, num_frames, num_images)
 
 
 def get_px_or_fraction(value, reference_value):
@@ -356,35 +364,34 @@ def zoom_video_composer(
     # Create frames
     def process_frame(i):  # to improve
         if direction == "in":
-            current_zoom = zoom_in(zoom, easing_func, i, num_frames, num_images)
+            current_zoom_log = zoom_in_log(easing_func, i, num_frames, num_images)
         elif direction == "out":
-            current_zoom = zoom_out(zoom, easing_func, i, num_frames, num_images)
+            current_zoom_log = zoom_out_log(easing_func, i, num_frames, num_images)
         elif direction == "inout":
             if i < num_frames_half:
-                current_zoom = zoom_in(
-                    zoom, easing_func, i, num_frames_half, num_images
+                current_zoom_log = zoom_in_log(
+                    easing_func, i, num_frames_half, num_images
                 )
             else:
-                current_zoom = zoom_out(
-                    zoom, easing_func, i - num_frames_half, num_frames_half, num_images
+                current_zoom_log = zoom_out_log(
+                    easing_func, i - num_frames_half, num_frames_half, num_images
                 )
         elif direction == "outin":
             if i < num_frames_half:
-                current_zoom = zoom_out(
-                    zoom, easing_func, i, num_frames_half, num_images
+                current_zoom_log = zoom_out_log(
+                    easing_func, i, num_frames_half, num_images
                 )
             else:
-                current_zoom = zoom_in(
-                    zoom, easing_func, i - num_frames_half, num_frames_half, num_images
+                current_zoom_log = zoom_in_log(
+                    easing_func, i - num_frames_half, num_frames_half, num_images
                 )
         else:
             raise ValueError(f"Unsupported direction: {direction}")
 
-        current_zoom_log = log(current_zoom, zoom)
-        current_image_idx = ceil(log(current_zoom, zoom))
+        current_image_idx = ceil(current_zoom_log)
         local_zoom = zoom ** (current_zoom_log - current_image_idx + 1)
 
-        if current_zoom == 1.0:
+        if current_zoom_log == 0.0:
             frame = images[0]
         else:
             frame = images[current_image_idx]
