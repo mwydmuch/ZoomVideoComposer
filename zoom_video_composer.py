@@ -35,6 +35,9 @@ from tqdm import trange
 from math import log, ceil, pow, sin, cos, pi
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 from moviepy.editor import VideoFileClip, AudioFileClip
+from concurrent.futures import ThreadPoolExecutor
+import concurrent
+from tqdm import tqdm
 
 
 EASING_FUNCTIONS = {
@@ -68,17 +71,14 @@ DEFAULT_RESAMPLING_FUNCTION = RESAMPLING_FUNCTIONS[DEFAULT_RESAMPLING_KEY]
 
 def zoom_crop(image, zoom, resampling_func=Image.Resampling.LANCZOS):
     width, height = image.size
-    zoom_width = width * zoom
-    zoom_height = height * zoom
-    zoom_image = image.resize((int(zoom_width), int(zoom_height)), resampling_func)
-    return zoom_image.crop(
-        (
-            (zoom_width - width) / 2,
-            (zoom_height - height) / 2,
-            (zoom_width + width) / 2,
-            (zoom_height + height) / 2,
-        )
+    zoom_size = (int(width * zoom), int(height * zoom))
+    crop_box = (
+        (zoom_size[0] - width) / 2,
+        (zoom_size[1] - height) / 2,
+        (zoom_size[0] + width) / 2,
+        (zoom_size[1] + height) / 2,
     )
+    return image.resize(zoom_size, resampling_func).crop(crop_box)
 
 
 def resize_scale(image, scale, resampling_func=Image.Resampling.LANCZOS):
@@ -87,11 +87,11 @@ def resize_scale(image, scale, resampling_func=Image.Resampling.LANCZOS):
 
 
 def zoom_in_log(easing_func, i, num_frames, num_images):
-    return ((easing_func(i / (num_frames - 1))) * num_images)
+    return (easing_func(i / (num_frames - 1))) * num_images
 
 
 def zoom_out_log(easing_func, i, num_frames, num_images):
-    return ((1 - easing_func(i / (num_frames - 1))) * num_images)
+    return (1 - easing_func(i / (num_frames - 1))) * num_images
 
 
 def zoom_in(zoom, easing_func, i, num_frames, num_images):
@@ -403,7 +403,11 @@ def zoom_video_composer(
 
     n_jobs = threads if threads > 0 else cpu_count() - threads
     click.echo(f"Creating frames in {n_jobs} threads ...")
-    Parallel(n_jobs=n_jobs)(delayed(process_frame)(i) for i in trange(num_frames))
+
+    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+        futures = [executor.submit(process_frame, i) for i in range(num_frames)]
+        for _ in tqdm(concurrent.futures.as_completed(futures), total=num_frames):
+            pass
 
     # Write video
     click.echo(f"Writing video to: {output} ...")
