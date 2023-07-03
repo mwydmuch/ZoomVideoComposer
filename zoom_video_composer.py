@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.2.1
+# zoom_video_composer.py v0.2.2
 # https://github.com/mwydmuch/ZoomVideoComposer
 
-# Copyright (c) 2023 Marek Wydmuch
+# Copyright (c) 2023 Marek Wydmuch and the respective contributors
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -294,9 +294,11 @@ def zoom_video_composer(
     num_images = len(images) - 1
     num_frames = int(duration * fps)
     num_frames_half = int(num_frames / 2)
+    print(image_paths)
     tmp_dir_hash = os.path.join(
         tmp_dir, md5("".join(image_paths).encode("utf-8")).hexdigest()
     )
+    print(tmp_dir_hash)
 
     width = get_px_or_fraction(width, images[0].width)
     height = get_px_or_fraction(height, images[0].height)
@@ -304,7 +306,7 @@ def zoom_video_composer(
 
     # Create tmp dir
     if not os.path.exists(tmp_dir_hash):
-        click.echo(f"Creating temporary directory for frames: {tmp_dir} ...")
+        click.echo(f"Creating temporary directory for frames: {tmp_dir_hash} ...")
         os.makedirs(tmp_dir_hash, exist_ok=True)
 
     if direction in ["out", "outin"]:
@@ -332,8 +334,8 @@ def zoom_video_composer(
         images[i] = image
 
         # Save image for debugging purposes
-        # image_path = os.path.join(tmp_dir_hash, f"_blending_step_1_{i:06d}.png")
-        # image.save(image_path)
+        image_path = os.path.join(tmp_dir_hash, f"_blending_step_1_{i:06d}.png")
+        image.save(image_path)
 
     images_resized = [resize_scale(i, zoom, resampling_func) for i in images]
     for i in trange(num_images, 0, -1):
@@ -356,10 +358,11 @@ def zoom_video_composer(
         images_resized[i] = image
 
         # Save image for debugging purposes
-        # image_path = os.path.join(tmp_dir_hash, f"_blending_step_2_{i:06d}.png")
-        # image.save(image_path)
+        image_path = os.path.join(tmp_dir_hash, f"_blending_step_2_{i:06d}.png")
+        image.save(image_path)
 
     images = images_resized
+    #exit(1)
 
     # Create frames
     def process_frame(i):  # to improve
@@ -390,6 +393,7 @@ def zoom_video_composer(
 
         current_image_idx = ceil(current_zoom_log)
         local_zoom = zoom ** (current_zoom_log - current_image_idx + 1)
+        #print(current_zoom_log, current_image_idx, local_zoom, zoom ** current_zoom_log)
 
         if current_zoom_log == 0.0:
             frame = images[0]
@@ -406,8 +410,12 @@ def zoom_video_composer(
 
     with ThreadPoolExecutor(max_workers=n_jobs) as executor:
         futures = [executor.submit(process_frame, i) for i in range(num_frames)]
-        for _ in tqdm(concurrent.futures.as_completed(futures), total=num_frames):
-            pass
+        try:
+            for _ in tqdm(concurrent.futures.as_completed(futures), total=num_frames):
+                pass
+        except KeyboardInterrupt:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
 
     # Write video
     click.echo(f"Writing video to: {output} ...")
