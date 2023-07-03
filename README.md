@@ -22,7 +22,7 @@ To use the script, you need to have Python installed on your machine.
 You can download it [here](https://www.python.org/downloads/) if you are using Windows. 
 MacOS and Linux users should have Python installed by default.
 
-1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.2.0.zip), unpack it, and open the terminal/command line window in the root of the repository.
+1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.2.2.zip), unpack it, and open the terminal/command line window in the root of the repository.
 
 2. Install the required packages by running the following command in the terminal/cmd window:
 ```
@@ -103,15 +103,30 @@ python zoom_video_composer.py example -o example_output_faster.mp4 -d 20 -r outi
 ```
 
 
+## Video tutorial and Google Colab for online use online
+(Thanks to [u/OkRub6877](https://www.reddit.com/user/OkRub6877/))
+
+You can watch the video tutorial on the tool [here](https://www.youtube.com/watch?v=nIJV_c-hKuw).
+And use it online (without installing anything on your machine) using this [Google Colab](https://colab.research.google.com/drive/1lp_GF9Q8x5ckY7yQIA9zo37g-1TUGQ1T?usp=sharing).
+
+
 ## Tips for generating proper images with Midjourney
 
 - Always use the same zoom factor for all images.
-- Never use the vary option on one of your images. It also changes the parts of the images generated previously, breaking the smoothness of the transition.
+- Never use the vary option (`V1/2/3/4` and `Vary (Strong)/(Subtle)` buttons) on one of your images. It also changes the parts of the images generated previously, breaking the smoothness of the transition.
 - Sometimes, Midjourney slightly changes the objects' position in the center when zooming out. Nothing can be done with it now; be aware of that and select generations without such shifts.
+- **`Zoom Out 1.5x` button in Midjourney is currently bugged and uses another zoom factor than `--zoom 1.5` prompt argument. To create an animation from images created with this button, use `-z 1.3333` argument for the script.**
+
+
+## Tips on editing the images
+
+The script stack images on top of each other and blends them together. 
+The most zoomed-in images are always on top of less zoomed-in images, 
+so if you want to modify something on the images manually, you can do it only on the most zoomed-in image.
 
 
 ## Tips on how to generate images with Stable Diffusion or Photoshop
-Thanks to [u/ObiWanCanShowMe](https://www.reddit.com/user/ObiWanCanShowMe/)!
+(Thanks to [u/ObiWanCanShowMe](https://www.reddit.com/user/ObiWanCanShowMe/))
 
 ### Stable Diffusion
 
