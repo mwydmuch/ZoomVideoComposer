@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.2.2
+# zoom_video_composer.py v0.2.3
 # https://github.com/mwydmuch/ZoomVideoComposer
 
 # Copyright (c) 2023 Marek Wydmuch and the respective contributors
@@ -334,8 +334,8 @@ def zoom_video_composer(
         images[i] = image
 
         # Save image for debugging purposes
-        image_path = os.path.join(tmp_dir_hash, f"_blending_step_1_{i:06d}.png")
-        image.save(image_path)
+        # image_path = os.path.join(tmp_dir_hash, f"_blending_step_1_{i:06d}.png")
+        # image.save(image_path)
 
     images_resized = [resize_scale(i, zoom, resampling_func) for i in images]
     for i in trange(num_images, 0, -1):
@@ -358,11 +358,10 @@ def zoom_video_composer(
         images_resized[i] = image
 
         # Save image for debugging purposes
-        image_path = os.path.join(tmp_dir_hash, f"_blending_step_2_{i:06d}.png")
-        image.save(image_path)
+        # image_path = os.path.join(tmp_dir_hash, f"_blending_step_2_{i:06d}.png")
+        # image.save(image_path)
 
     images = images_resized
-    #exit(1)
 
     # Create frames
     def process_frame(i):  # to improve
