@@ -2,8 +2,9 @@
 
 # zoom_video_composer.py v0.2.1
 # https://github.com/mwydmuch/ZoomVideoComposer
+# https://github.com/miwaniza/ZoomVideoComposer
 
-# Copyright (c) 2023 Marek Wydmuch
+# Copyright (c) 2023 Marek Wydmuch, Dmytro Yemelianov
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,13 +27,13 @@
 
 import os
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from math import ceil, pow, sin, cos, pi
 
+import cv2
 import gradio as gr
-from PIL import Image
-from moviepy.editor import AudioFileClip
-from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
+from moviepy.editor import AudioFileClip, VideoFileClip
 
 EASING_FUNCTIONS = {
     "linear": lambda x: x,
@@ -51,33 +52,25 @@ EASING_FUNCTIONS = {
 DEFAULT_EASING_KEY = "easeInOutSine"
 DEFAULT_EASING_FUNCTION = EASING_FUNCTIONS[DEFAULT_EASING_KEY]
 
-RESAMPLING_FUNCTIONS = {
-    "nearest": Image.Resampling.NEAREST,
-    "box": Image.Resampling.BOX,
-    "bilinear": Image.Resampling.BILINEAR,
-    "hamming": Image.Resampling.HAMMING,
-    "bicubic": Image.Resampling.BICUBIC,
-    "lanczos": Image.Resampling.LANCZOS,
-}
-DEFAULT_RESAMPLING_KEY = "lanczos"
-DEFAULT_RESAMPLING_FUNCTION = RESAMPLING_FUNCTIONS[DEFAULT_RESAMPLING_KEY]
 
-
-def zoom_crop(image, zoom, resampling_func=Image.Resampling.LANCZOS):
-    width, height = image.size
+def zoom_crop_cv2(image, zoom):
+    height, width, channels = image.shape
     zoom_size = (int(width * zoom), int(height * zoom))
+    # crop box as integers
     crop_box = (
-        (zoom_size[0] - width) / 2,
-        (zoom_size[1] - height) / 2,
-        (zoom_size[0] + width) / 2,
-        (zoom_size[1] + height) / 2,
+        int((zoom_size[0] - width) / 2),
+        int((zoom_size[1] - height) / 2),
+        int((zoom_size[0] + width) / 2),
+        int((zoom_size[1] + height) / 2),
     )
-    return image.resize(zoom_size, resampling_func).crop(crop_box)
+    im = cv2.resize(image, zoom_size, interpolation=cv2.INTER_LANCZOS4)
+    im = im[crop_box[1]:crop_box[3], crop_box[0]:crop_box[2]]
+    return im
 
 
-def resize_scale(image, scale, resampling_func=Image.Resampling.LANCZOS):
-    width, height = image.size
-    return image.resize((int(width * scale), int(height * scale)), resampling_func)
+def resize_scale(image, scale):
+    height, width = image.shape[:2]
+    return cv2.resize(image, (int(width * scale), int(height * scale)), interpolation=cv2.INTER_LANCZOS4)
 
 
 def zoom_in_log(easing_func, i, num_frames, num_images):
@@ -110,13 +103,11 @@ def zoom_video_composer(
         easing,
         direction,
         fps,
-        resampling,
         reverse_images,
         progress=gr.Progress()
 ):
     """Compose a zoom video from multiple provided images."""
     output = "output.mp4"
-    threads = -1
     tmp_dir = "tmp"
     width = 1
     height = 1
@@ -125,34 +116,25 @@ def zoom_video_composer(
     skip_video_generation = False
 
     # Read images from image_paths
+    images_cv2 = list(cv2.imread(image_path.name) for image_path in image_paths)
 
-    images = list(Image.open(image_path.name) for image_path in image_paths)
-
-    if len(images) < 2:
+    if len(images_cv2) < 2:
         raise gr.Error("At least two images are required to create a zoom video")
-        # raise ValueError("At least two images are required to create a zoom video")
 
-    # gr.Info("Images loaded")
     progress(0, desc="Images loaded")
 
     # Setup some additional variables
     easing_func = EASING_FUNCTIONS.get(easing, None)
     if easing_func is None:
         raise gr.Error(f"Unsupported easing function: {easing}")
-        # raise ValueError(f"Unsupported easing function: {easing}")
 
-    resampling_func = RESAMPLING_FUNCTIONS.get(resampling, None)
-    if resampling_func is None:
-        raise gr.Error(f"Unsupported resampling function: {resampling}")
-        # raise ValueError(f"Unsupported resampling function: {resampling}")
-
-    num_images = len(images) - 1
+    num_images = len(images_cv2) - 1
     num_frames = int(duration * fps)
     num_frames_half = int(num_frames / 2)
     tmp_dir_hash = os.path.join(tmp_dir, md5(output.encode("utf-8")).hexdigest())
-    width = get_px_or_fraction(width, images[0].width)
-    height = get_px_or_fraction(height, images[0].height)
-    margin = get_px_or_fraction(margin, min(images[0].width, images[0].height))
+    width = get_px_or_fraction(width, images_cv2[0].shape[1])
+    height = get_px_or_fraction(height, images_cv2[0].shape[0])
+    margin = get_px_or_fraction(margin, min(images_cv2[0].shape[1], images_cv2[0].shape[0]))
 
     # Create tmp dir
     if not os.path.exists(tmp_dir_hash):
@@ -160,40 +142,43 @@ def zoom_video_composer(
         os.makedirs(tmp_dir_hash, exist_ok=True)
 
     if direction in ["out", "outin"]:
-        images.reverse()
+        images_cv2.reverse()
 
     if reverse_images:
-        images.reverse()
+        images_cv2.reverse()
 
     # Blend images (take care of margins)
-    progress(0, desc=f"Blending {len(images)} images")
+    progress(0, desc=f"Blending {len(images_cv2)} images")
     for i in progress.tqdm(range(1, num_images + 1), desc="Blending images"):
-        inner_image = images[i]
-        outer_image = images[i - 1]
-        inner_image = inner_image.crop(
-            (margin, margin, inner_image.width - margin, inner_image.height - margin)
-        )
+        inner_image = images_cv2[i]
+        outer_image = images_cv2[i - 1]
+        inner_image = inner_image[
+                      margin:inner_image.shape[0] - margin,
+                      margin:inner_image.shape[1] - margin
+                      ]
+        image = zoom_crop_cv2(outer_image, zoom)
+        image[
+        margin:margin + inner_image.shape[0],
+        margin:margin + inner_image.shape[1]
+        ] = inner_image
+        images_cv2[i] = image
 
-        image = zoom_crop(outer_image, zoom, resampling_func)
-        image.paste(inner_image, (margin, margin))
-        images[i] = image
-
-    images_resized = [resize_scale(i, zoom, resampling_func) for i in images]
+    images_resized = [resize_scale(i, zoom) for i in images_cv2]
     for i in progress.tqdm(range(num_images, 0, -1), desc="Resizing images"):
         inner_image = images_resized[i]
         image = images_resized[i - 1]
-        inner_image = resize_scale(inner_image, 1.0 / zoom, resampling_func)
+        inner_image = resize_scale(inner_image, 1.0 / zoom)
 
-        image.paste(
-            inner_image,
-            (
-                int((image.width - inner_image.width) / 2),
-                int((image.height - inner_image.height) / 2),
-            ),
-        )
+        h, w = image.shape[:2]
+        ih, iw = inner_image.shape[:2]
+        x = int((w - iw) / 2)
+        y = int((h - ih) / 2)
+
+        image[y:y + ih, x:x + iw] = inner_image
+
         images_resized[i] = image
 
-    images = images_resized
+    images_cv2 = images_resized
 
     # Create frames
     def process_frame(i):  # to improve
@@ -220,43 +205,49 @@ def zoom_video_composer(
                     easing_func, i - num_frames_half, num_frames_half, num_images
                 )
         else:
-            raise ValueError(f"Unsupported direction: {direction}")
+            raise gr.Error(f"Unsupported direction: {direction}")
 
         current_image_idx = ceil(current_zoom_log)
         local_zoom = zoom ** (current_zoom_log - current_image_idx + 1)
 
         if current_zoom_log == 0.0:
-            frame = images[0]
+            frame_image = images_cv2[0]
         else:
-            frame = images[current_image_idx]
-            frame = zoom_crop(frame, local_zoom, resampling_func)
+            frame_image = images_cv2[current_image_idx]
+            frame_image = zoom_crop_cv2(frame_image, local_zoom)
 
-        frame = frame.resize((width, height), resampling_func)
+        frame_image = cv2.resize(frame_image, (width, height), interpolation=cv2.INTER_LANCZOS4)
         frame_path = os.path.join(tmp_dir_hash, f"{i:06d}.png")
-        frame.save(frame_path)
+        cv2.imwrite(frame_path, frame_image)
 
     progress(0, desc=f"Creating {num_frames} frames")
-    for i in progress.tqdm(range(num_frames), desc="Creating frames"):
-        process_frame(i)
+
+    with ThreadPoolExecutor(8) as executor:
+        list(progress.tqdm(executor.map(process_frame, range(num_frames)), total=num_frames, desc="Creating frames"))
 
     # Write video
     progress(0, desc=f"Writing video to: {output}")
     image_files = [
         os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)
     ]
-    video_clip = ImageSequenceClip(image_files, fps=fps)
-    video_write_kwargs = {"codec": "libx264"}
 
-    # Add audio
-    if audio_path:
-        # audio file name
-        progress(0, desc=f"Adding audio from: {os.path.basename(audio_path.name)}")
-        audio_clip = AudioFileClip(audio_path.name)
-        audio_clip = audio_clip.subclip(0, video_clip.end)
-        video_clip = video_clip.set_audio(audio_clip)
-        video_write_kwargs["audio_codec"] = "aac"
+    # Create video clip using images in tmp dir and audio if provided
+    frame_size = (width, height)
+    out = cv2.VideoWriter(output, cv2.VideoWriter_fourcc(*'mp4v'), fps, frame_size)
+    for i in progress.tqdm(range(num_frames), desc="Writing video"):
+        frame = cv2.imread(image_files[i])
+        out.write(frame)
+    out.release()
 
-    video_clip.write_videofile(output, **video_write_kwargs)
+    if audio_path is not None:
+        audio = AudioFileClip(audio_path.name)
+        video = VideoFileClip(output)
+        audio = audio.subclip(0, video.end)
+        video = video.set_audio(audio)
+        video_write_kwargs = {"audio_codec": "aac"}
+        output_audio = os.path.splitext(output)[0] + "_audio.mp4"
+        video.write_videofile(output_audio, **video_write_kwargs)
+        output = output_audio
 
     # Remove tmp dir
     if not keep_frames and not skip_video_generation:
@@ -279,8 +270,6 @@ grInputs = [
     gr.inputs.Dropdown(label="Zoom direction. Inout and outin combine both directions",
                        choices=["in", "out", "inout", "outin"], default="out"),
     gr.inputs.Slider(label="Frames per second of the output video", minimum=1, maximum=60, step=1, default=30),
-    gr.inputs.Dropdown(label="Resampling technique used for resizing images",
-                       choices=["nearest", "box", "bilinear", "hamming", "bicubic", "lanczos"], default="lanczos"),
     gr.inputs.Checkbox(label="Reverse images", default=False)
 ]
 
