@@ -150,6 +150,7 @@ Repeat until you get the desired number of images.
 ## Animations created with this script
 
 - [Cats living in the abandoned city](https://www.reddit.com/r/midjourney/comments/14jcyqs/cats_living_in_the_abandoned_city_my_first_zoom/)
+- [Black and white (and 3 more)](https://www.reddit.com/r/midjourney/comments/14x2l6a/zoom_out_animations_collection/)
 
 Add your animations here by creating a pull request.
 
