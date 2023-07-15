@@ -57,4 +57,5 @@ Before and after
 
 https://github.com/sambernaerdt/ZoomVideoComposer/assets/4118556/b8dcec1f-b386-4df1-ab47-4ac9da89505f
 
-https://github.com/sambernaerdt/ZoomVideoComposer/assets/4118556/5848d012-4353-4bbf-990d-8689c24adaf8
+https://github.com/sambernaerdt/ZoomVideoComposer/assets/4118556/91ffd252-dcd3-4bb5-aeef-616cf8685e7f
+
