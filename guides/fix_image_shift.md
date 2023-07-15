@@ -55,6 +55,6 @@ Depending on how strong the edits on image 2 are, it might be needed to fix imag
 
 Before and after
 
-  ![before](fix_image_shift_before.mp4)
-  
-  ![after](fix_image_shift_after.mp4)
+https://github.com/sambernaerdt/ZoomVideoComposer/assets/4118556/b8dcec1f-b386-4df1-ab47-4ac9da89505f
+
+https://github.com/sambernaerdt/ZoomVideoComposer/assets/4118556/5848d012-4353-4bbf-990d-8689c24adaf8
