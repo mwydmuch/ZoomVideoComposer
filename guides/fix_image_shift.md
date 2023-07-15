@@ -17,7 +17,7 @@ Using Photoshop, fix as follows.
 
   ![step2](fix_image_shift_step_2.png)
   
-* Select image 2, **Edit > Transform > Warp** and choose **Grid: 4 x 4** and select the center control points
+* Select image 2, **Edit > Transform > Warp**, choose **Grid: 4 x 4** and select the center control points
 
   ![step3](fix_image_shift_step_3.png)
   
