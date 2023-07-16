@@ -39,14 +39,13 @@ from concurrent.futures import ThreadPoolExecutor
 import concurrent
 from tqdm import tqdm
 
-LINEAR_EASE_IN_OUT_DURATION_FRAMES = 10; # TODO: convert to duration in seconds instead?
 # Returns an easing function with a linear speed that eases in/out
 # This is useful for very long animations where you want a steady zoom speed but still 
 # start and stop smoothly.
-def get_easing_function_linearEaseInOut(total_number_of_frames):
+def get_easing_function_linearEaseInOut(duration, linear_ease_duration):
     # fraction defines both the x and y of the 'square' in which the easing takes place
-    ease_duration_frames = min(LINEAR_EASE_IN_OUT_DURATION_FRAMES, total_number_of_frames / 2)
-    ease_duration_fraction = ease_duration_frames / total_number_of_frames
+    ease_duration = min(linear_ease_duration, duration / 2)
+    ease_duration_fraction = ease_duration / duration
     ease_duration_scale = 1 / ease_duration_fraction
     def linear_ease_in_out(x):
         if x < ease_duration_fraction:
@@ -58,10 +57,10 @@ def get_easing_function_linearEaseInOut(total_number_of_frames):
     return linear_ease_in_out      
     
 
-def get_easing_functions(total_number_of_frames):
+def get_easing_functions(duration, linear_ease_duration):
     return {
         "linear": lambda x: x,
-        "linearEaseInOut": get_easing_function_linearEaseInOut(total_number_of_frames),
+        "linearEaseInOut": get_easing_function_linearEaseInOut(duration, linear_ease_duration),
         "easeInSine": lambda x: 1 - cos((x * pi) / 2),
         "easeOutSine": lambda x: sin((x * pi) / 2),
         "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
@@ -165,6 +164,13 @@ def get_px_or_fraction(value, reference_value):
     show_default=True,
 )
 @click.option(
+    "--linear_ease_duration",
+    type=float,
+    default=5.0,
+    help="Duration of the easing in/out when easing options is linearEaseInOut.",
+    show_default=True,
+)
+@click.option(
     "-r",
     "--direction",
     type=click.Choice(["in", "out", "inout", "outin"]),
@@ -262,6 +268,7 @@ def zoom_video_composer(
     zoom=2.0,
     duration=10.0,
     easing=DEFAULT_EASING_KEY,
+    linear_ease_duration=5.0,
     direction="out",
     output="output.mp4",
     threads=-1,
@@ -301,7 +308,7 @@ def zoom_video_composer(
         raise ValueError("At least two images are required to create a zoom video")
 
     # Setup some additional variables
-    easing_func = get_easing_functions(duration).get(easing, None)
+    easing_func = get_easing_functions(duration, linear_ease_duration).get(easing, None)
     if easing_func is None:
         raise ValueError(f"Unsupported easing function: {easing}")
 
