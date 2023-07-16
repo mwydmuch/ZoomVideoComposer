@@ -167,7 +167,7 @@ def get_px_or_fraction(value, reference_value):
     "--linear_ease_duration",
     type=float,
     default=5.0,
-    help="Duration of the easing in/out when easing options is linearEaseInOut.",
+    help="Duration in seconds of the easeIn and easeOut when easing is set to 'linearEaseInOut'",
     show_default=True,
 )
 @click.option(

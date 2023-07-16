@@ -44,8 +44,11 @@ Options:
                                   2.0]
   -d, --duration FLOAT            Duration of the video in seconds.  [default:
                                   10.0]
-  -e, --easing [linear|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic]
+  -e, --easing [linear|linearEaseInOut|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic]
                                   Easing function.  [default: easeInOutSine]
+  --linear_ease_duration FLOAT    Duration in seconds of the easeIn and
+                                  easeOut when easing is set to
+                                  'linearEaseInOut'  [default: 5.0]
   -r, --direction [in|out|inout|outin]
                                   Zoom direction. Inout and outin combine both
                                   directions.  [default: out]
