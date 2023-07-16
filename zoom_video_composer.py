@@ -39,23 +39,42 @@ from concurrent.futures import ThreadPoolExecutor
 import concurrent
 from tqdm import tqdm
 
+LINEAR_EASE_IN_OUT_DURATION_FRAMES = 10; # TODO: convert to duration in seconds instead?
+# Returns an easing function with a linear speed that eases in/out
+# This is useful for very long animations where you want a steady zoom speed but still 
+# start and stop smoothly.
+def get_easing_function_linearEaseInOut(total_number_of_frames):
+    # fraction defines both the x and y of the 'square' in which the easing takes place
+    ease_duration_frames = min(LINEAR_EASE_IN_OUT_DURATION_FRAMES, total_number_of_frames / 2)
+    ease_duration_fraction = ease_duration_frames / total_number_of_frames
+    ease_duration_scale = 1 / ease_duration_fraction
+    def linear_ease_in_out(x):
+        if x < ease_duration_fraction:
+            return (x * ease_duration_scale) ** 2 / ease_duration_scale / 2
+        elif x > (1 - ease_duration_fraction):
+            return 1 - ((1 - x) * ease_duration_scale) ** 2 / ease_duration_scale / 2
+        else:
+            return (x - ease_duration_fraction) * (1 - ease_duration_fraction) / (1 - 2 * ease_duration_fraction) + ease_duration_fraction / 2
+    return linear_ease_in_out      
+    
 
-EASING_FUNCTIONS = {
-    "linear": lambda x: x,
-    "easeInSine": lambda x: 1 - cos((x * pi) / 2),
-    "easeOutSine": lambda x: sin((x * pi) / 2),
-    "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
-    "easeInQuad": lambda x: x * x,
-    "easeOutQuad": lambda x: 1 - (1 - x) * (1 - x),
-    "easeInOutQuad": lambda x: 2 * x * x if x < 0.5 else 1 - pow(-2 * x + 2, 2) / 2,
-    "easeInCubic": lambda x: x * x * x,
-    "easeOutCubic": lambda x: 1 - pow(1 - x, 3),
-    "easeInOutCubic": lambda x: 4 * x * x * x
-    if x < 0.5
-    else 1 - pow(-2 * x + 2, 3) / 2,
-}
+def get_easing_functions(total_number_of_frames):
+    return {
+        "linear": lambda x: x,
+        "linearEaseInOut": get_easing_function_linearEaseInOut(total_number_of_frames),
+        "easeInSine": lambda x: 1 - cos((x * pi) / 2),
+        "easeOutSine": lambda x: sin((x * pi) / 2),
+        "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
+        "easeInQuad": lambda x: x * x,
+        "easeOutQuad": lambda x: 1 - (1 - x) * (1 - x),
+        "easeInOutQuad": lambda x: 2 * x * x if x < 0.5 else 1 - pow(-2 * x + 2, 2) / 2,
+        "easeInCubic": lambda x: x * x * x,
+        "easeOutCubic": lambda x: 1 - pow(1 - x, 3),
+        "easeInOutCubic": lambda x: 4 * x * x * x
+        if x < 0.5
+        else 1 - pow(-2 * x + 2, 3) / 2,
+    }
 DEFAULT_EASING_KEY = "easeInOutSine"
-DEFAULT_EASING_FUNCTION = EASING_FUNCTIONS[DEFAULT_EASING_KEY]
 
 RESAMPLING_FUNCTIONS = {
     "nearest": Image.Resampling.NEAREST,
@@ -67,7 +86,6 @@ RESAMPLING_FUNCTIONS = {
 }
 DEFAULT_RESAMPLING_KEY = "lanczos"
 DEFAULT_RESAMPLING_FUNCTION = RESAMPLING_FUNCTIONS[DEFAULT_RESAMPLING_KEY]
-
 
 def zoom_crop(image, zoom, resampling_func=Image.Resampling.LANCZOS):
     width, height = image.size
@@ -141,7 +159,7 @@ def get_px_or_fraction(value, reference_value):
 @click.option(
     "-e",
     "--easing",
-    type=click.Choice(list(EASING_FUNCTIONS.keys())),
+    type=click.Choice(["linear", "linearEaseInOut", "easeInSine", "easeOutSine",  "easeInOutSine", "easeInQuad", "easeOutQuad", "easeInOutQuad", "easeInCubic", "easeOutCubic", "easeInOutCubic"]),
     default=DEFAULT_EASING_KEY,
     help="Easing function.",
     show_default=True,
@@ -283,7 +301,7 @@ def zoom_video_composer(
         raise ValueError("At least two images are required to create a zoom video")
 
     # Setup some additional variables
-    easing_func = EASING_FUNCTIONS.get(easing, None)
+    easing_func = get_easing_functions(duration).get(easing, None)
     if easing_func is None:
         raise ValueError(f"Unsupported easing function: {easing}")
 
