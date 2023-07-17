@@ -114,7 +114,7 @@ And use it online (without installing anything on your machine) using this [Goog
 
 - Always use the same zoom factor for all images.
 - Never use the vary option (`V1/2/3/4` and `Vary (Strong)/(Subtle)` buttons) on one of your images. It also changes the parts of the images generated previously, breaking the smoothness of the transition.
-- Sometimes, Midjourney slightly changes the objects' position in the center when zooming out. This should be fixed before running the script. See [Fix image shift](./guides/fix_image_shift.md)
+- Sometimes, Midjourney slightly changes the objects' position in the center when zooming out. It's recommended to avoid that by carefully selecting the images. It can also be fixed manually before running the script. See [Fix image shift](./guides/fix_image_shift.md)
 - **`Zoom Out 1.5x` button in Midjourney is currently bugged and uses another zoom factor than `--zoom 1.5` prompt argument. To create an animation from images created with this button, use `-z 1.3333` argument for the script.**
 
 
