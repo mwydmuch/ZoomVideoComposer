@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.2.3
+# zoom_video_composer.py v0.3.0
 # https://github.com/mwydmuch/ZoomVideoComposer
 
 # Copyright (c) 2023 Marek Wydmuch and the respective contributors
@@ -40,22 +40,42 @@ import concurrent
 from tqdm import tqdm
 
 
+def get_ease_pow_in(power):
+    return lambda x: pow(x, power)
+
+def get_ease_pow_out(power):
+    return lambda x: 1 - pow(1 - x, power)
+
+def get_ease_pow_in_out(power):
+    return lambda x: pow(2, power - 1) * pow(x, power) if x < 0.5 else 1 - pow(-2 * x + 2, power) / 2
+
 EASING_FUNCTIONS = {
     "linear": lambda x: x,
     "easeInSine": lambda x: 1 - cos((x * pi) / 2),
     "easeOutSine": lambda x: sin((x * pi) / 2),
     "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
-    "easeInQuad": lambda x: x * x,
-    "easeOutQuad": lambda x: 1 - (1 - x) * (1 - x),
-    "easeInOutQuad": lambda x: 2 * x * x if x < 0.5 else 1 - pow(-2 * x + 2, 2) / 2,
-    "easeInCubic": lambda x: x * x * x,
-    "easeOutCubic": lambda x: 1 - pow(1 - x, 3),
-    "easeInOutCubic": lambda x: 4 * x * x * x
-    if x < 0.5
-    else 1 - pow(-2 * x + 2, 3) / 2,
+    "easeInQuad": get_ease_pow_in(2),
+    "easeOutQuad": get_ease_pow_out(2),
+    "easeInOutQuad": get_ease_pow_in_out(2),
+    "easeInCubic": get_ease_pow_in(3),
+    "easeOutCubic": get_ease_pow_out(3),
+    "easeInOutCubic": get_ease_pow_in_out(3),
+    "easeInPow": get_ease_pow_in,
+    "easeOutPow": get_ease_pow_out,
+    "easeInOutPow": get_ease_pow_in_out,
 }
+
+def get_easing_function(easing, power):
+    easing_func = EASING_FUNCTIONS.get(easing, None)
+    if easing_func is None:
+        raise ValueError(f"Unsupported easing function: {easing}")
+    if easing_func.__code__.co_varnames[0] != "x":
+        easing_func = easing_func(power)
+    return easing_func
+
 DEFAULT_EASING_KEY = "easeInOutSine"
-DEFAULT_EASING_FUNCTION = EASING_FUNCTIONS[DEFAULT_EASING_KEY]
+DEFAULT_EASING_POWER = 1.5
+
 
 RESAMPLING_FUNCTIONS = {
     "nearest": Image.Resampling.NEAREST,
@@ -144,6 +164,13 @@ def get_px_or_fraction(value, reference_value):
     type=click.Choice(list(EASING_FUNCTIONS.keys())),
     default=DEFAULT_EASING_KEY,
     help="Easing function.",
+    show_default=True,
+)
+@click.option(
+    "--easing-power",
+    type=float,
+    default=DEFAULT_EASING_POWER,
+    help="Power argument of easeInPow, easeOutPow and easeInOutPow easing functions.",
     show_default=True,
 )
 @click.option(
@@ -244,6 +271,7 @@ def zoom_video_composer(
     zoom=2.0,
     duration=10.0,
     easing=DEFAULT_EASING_KEY,
+    easing_power=DEFAULT_EASING_POWER,
     direction="out",
     output="output.mp4",
     threads=-1,
@@ -283,10 +311,7 @@ def zoom_video_composer(
         raise ValueError("At least two images are required to create a zoom video")
 
     # Setup some additional variables
-    easing_func = EASING_FUNCTIONS.get(easing, None)
-    if easing_func is None:
-        raise ValueError(f"Unsupported easing function: {easing}")
-
+    easing_func = get_easing_function(easing, easing_power)
     resampling_func = RESAMPLING_FUNCTIONS.get(resampling, None)
     if resampling_func is None:
         raise ValueError(f"Unsupported resampling function: {resampling}")
@@ -294,11 +319,9 @@ def zoom_video_composer(
     num_images = len(images) - 1
     num_frames = int(duration * fps)
     num_frames_half = int(num_frames / 2)
-    print(image_paths)
     tmp_dir_hash = os.path.join(
         tmp_dir, md5("".join(image_paths).encode("utf-8")).hexdigest()
     )
-    print(tmp_dir_hash)
 
     width = get_px_or_fraction(width, images[0].width)
     height = get_px_or_fraction(height, images[0].height)

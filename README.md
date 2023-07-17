@@ -44,8 +44,11 @@ Options:
                                   2.0]
   -d, --duration FLOAT            Duration of the video in seconds.  [default:
                                   10.0]
-  -e, --easing [linear|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic]
+  -e, --easing [linear|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic|easeInPow|easeOutPow|easeInOutPow]
                                   Easing function.  [default: easeInOutSine]
+  --easing-power FLOAT            Power argument of easeInPow, easeOutPow and
+                                  easeInOutPow easing functions.  [default:
+                                  1.5]
   -r, --direction [in|out|inout|outin]
                                   Zoom direction. Inout and outin combine both
                                   directions.  [default: out]
@@ -78,12 +81,13 @@ Options:
                                   [default: 0.05]
   --keep-frames                   Keep frames in the temporary directory.
                                   Otherwise, it will be deleted after the
-                                  video is generated.
+                                  video is generated.  [default: False]
   --skip-video-generation         Skip video generation. Useful if you only
                                   want to generate the frames. This option
                                   will keep the temporary directory similar to
-                                  --keep-frames flag.
-  --reverse-images                Reverse the order of the images.
+                                  --keep-frames flag.  [default: False]
+  --reverse-images                Reverse the order of the images.  [default:
+                                  False]
   --help                          Show this message and exit.
 ```
 
