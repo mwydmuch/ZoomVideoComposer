@@ -155,6 +155,8 @@ Repeat until you get the desired number of images.
 
 - [Cats living in the abandoned city](https://www.reddit.com/r/midjourney/comments/14jcyqs/cats_living_in_the_abandoned_city_my_first_zoom/)
 - [Black and white (and 3 more)](https://www.reddit.com/r/midjourney/comments/14x2l6a/zoom_out_animations_collection/)
+- [Platypus at the end of the world (and 2 more]
+(https://www.reddit.com/r/midjourney/comments/14yv90n/zoom_out_animations_lt35_universe_trip_down_the/)
 
 Add your animations here by creating a pull request.
 
