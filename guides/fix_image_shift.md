@@ -5,7 +5,7 @@ It sometimes happens that Midjourney shifts the image slightly on the zoom out. 
 ## Fix image shift in Photoshop
 
 The image where the shift happened during zooming out is called *image 2* in this guide, and the one before it *image 1*.
-The guide use presents steps for Photoshop. However, they can be easily replicated in other image editors.
+The guide presents steps for Photoshop. However, they can be easily replicated in other image editors.
 
 
 ### Fix image 2
@@ -36,7 +36,7 @@ The guide use presents steps for Photoshop. However, they can be easily replicat
   
 ### Fix image 1
 
-Depending on how strong the edits on image 2 are, it might be necessary to fix image 1 too, to cover up the tweaks on the edges.
+Depending on how substantial the edits on image 2 are, it might be necessary to fix image 1 too, to cover up the tweaks on the edges.
 
 * Open image 1
 
