@@ -1,13 +1,12 @@
 import os
 from math import cos, pi, sin, pow, ceil
 
-import click
 import cv2
 import gradio as gr
 from PIL import Image
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
-from moviepy.video.io.VideoFileClip import VideoFileClip
+from proglog import TqdmProgressBarLogger
 from tqdm import trange
 
 
@@ -166,16 +165,15 @@ def get_px_or_fraction(value, reference_value):
     return int(value)
 
 
-def read_images(image_paths, image_engine=DEFAULT_IMAGE_ENGINE):
+def read_images(image_paths, logger, image_engine=DEFAULT_IMAGE_ENGINE):
     image_class = IMAGE_CLASSES.get(image_engine, None)
     if image_class is None:
         raise ValueError(f"Unsupported image engine function: {image_class}")
     
     images = []
-    print(image_class)
     for image_path in image_paths:
         if not image_path.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
-            click.echo(f"Unsupported file type: {image_path}, skipping")
+            logger(f"Unsupported file type: {image_path}, skipping")
             continue
         image = image_class.load(image_path)
         images.append(image)
@@ -186,19 +184,19 @@ def read_images(image_paths, image_engine=DEFAULT_IMAGE_ENGINE):
     return images
 
 
-def get_image_paths(image_paths):
-    _image_paths = []
-    for image_path in image_paths:
-        if hasattr(image_path, "name"):
-            _image_paths.append(image_path.name)
-        elif os.path.isfile(image_path):
-            _image_paths.append(image_path)
-        elif os.path.isdir(image_path):
-            for subimage_path in sorted(os.listdir(image_path)):
-                _image_paths.append(os.path.join(image_path, subimage_path))
+def get_image_paths(input_paths):
+    image_paths = []
+    for path in input_paths:
+        if hasattr(path, "name"):
+            image_paths.append(path.name)
+        elif os.path.isfile(path):
+            image_paths.append(path)
+        elif os.path.isdir(path):
+            for subpath in sorted(os.listdir(path)):
+                image_paths.append(os.path.join(path, subpath))
         else:
-            raise ValueError(f"Unsupported file type: {image_path}, skipping")
-    return _image_paths
+            raise ValueError(f"Unsupported file type: {path}, skipping")
+    return image_paths
 
 
 def get_sizes(image, width, height, margin):
@@ -218,7 +216,7 @@ def images_reverse(images, direction, reverse_images):
 
 def blend_images(images, margin, zoom, resampling_func):
     num_images = len(images) - 1
-    for i in trange(1, num_images + 1):
+    for i in range(1, num_images + 1):
         inner_image = images[i]
         outer_image = images[i - 1]
         inner_image = inner_image.crop(
@@ -230,7 +228,7 @@ def blend_images(images, margin, zoom, resampling_func):
         images[i] = image
 
     images_resized = [i.resize_scale(zoom, resampling_func) for i in images]
-    for i in trange(num_images, 0, -1):
+    for i in range(num_images, 0, -1):
         inner_image = images_resized[i]
         image = images_resized[i - 1]
         inner_image = inner_image.resize_scale(1.0 / zoom, resampling_func)
@@ -287,20 +285,20 @@ def process_frame(i, images, direction, easing_func, num_frames, num_frames_half
     frame.save(frame_path)
 
 
-def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path):
-    click.echo(f"Writing video to: {output_path} ...")
+def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path, threads):
     image_files = [
         os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)
     ]
     video_clip = ImageSequenceClip(image_files, fps=fps)
-    video_write_kwargs = {"codec": "libx264"}
+    video_write_kwargs = {"codec": "libx264", "threads": threads}
 
     # Add audio
     if audio_path:
-        click.echo(f"Adding audio from: {audio_path} ...")
         audio_clip = AudioFileClip(audio_path)
         audio_clip = audio_clip.subclip(0, video_clip.end)
         video_clip = video_clip.set_audio(audio_clip)
         video_write_kwargs["audio_codec"] = "aac"
 
-    video_clip.write_videofile(output_path, **video_write_kwargs)
+    video_clip.write_videofile(output_path,
+                               logger=TqdmProgressBarLogger(bars={"t": {"title": "Writting a movie file", "total": num_frames, "message": None, "index": -1}}, print_messages=False), 
+                               **video_write_kwargs)

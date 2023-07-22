@@ -23,7 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+VERSION = "0.3.0"
 import concurrent
 import os
 import shutil
@@ -84,30 +84,6 @@ from helpers import *
     show_default=True,
 )
 @click.option(
-    "-o",
-    "--output",
-    type=click.Path(),
-    default="output.mp4",
-    help="Output video file.",
-    show_default=True,
-)
-@click.option(
-    "-t",
-    "--threads",
-    type=int,
-    default=-1,
-    help="Number of threads to use to generate frames. Use values <= 0 for number of available threads on your "
-         "machine minus the provided absolute value.",
-    show_default=True,
-)
-@click.option(
-    "--tmp-dir",
-    type=click.Path(),
-    default="tmp",
-    help="Temporary directory to store frames.",
-    show_default=True,
-)
-@click.option(
     "-f",
     "--fps",
     type=int,
@@ -152,6 +128,30 @@ from helpers import *
     show_default=True,
 )
 @click.option(
+    "-o",
+    "--output",
+    type=click.Path(),
+    default="output.mp4",
+    help="Output video file.",
+    show_default=True,
+)
+@click.option(
+    "-t",
+    "--threads",
+    type=int,
+    default=-1,
+    help="Number of threads to use to generate frames. Use values <= 0 for number of available threads on your "
+         "machine minus the provided absolute value.",
+    show_default=True,
+)
+@click.option(
+    "--tmp-dir",
+    type=click.Path(),
+    default="tmp",
+    help="Temporary directory to store frames.",
+    show_default=True,
+)
+@click.option(
     "--keep-frames",
     is_flag=True,
     default=False,
@@ -189,22 +189,20 @@ def zoom_video_composer_cli(
         direction="out",
         fps=30,
         reverse_images=False,
-        output="output.mp4",
-        threads=-1,
-        tmp_dir="tmp",
         width=1,
         height=1,
         resampling=DEFAULT_RESAMPLING_KEY,
         margin=0.05,
+        output="output.mp4",
+        threads=-1,
+        tmp_dir="tmp",
         keep_frames=False,
         skip_video_generation=False,
         image_engine=DEFAULT_IMAGE_ENGINE,
 ):
     """Compose a zoom video from multiple provided images."""
-    zoom_video_composer(image_paths, audio_path, zoom, duration, easing, direction, fps, reverse_images, output,
-                        threads, tmp_dir, width, height, resampling, margin, keep_frames, skip_video_generation,
-                        image_engine)
-
+    zoom_video_composer(image_paths, audio_path, zoom, duration, easing, direction, fps, reverse_images, width, height, resampling, 
+                        margin, output, threads, tmp_dir, keep_frames, skip_video_generation, image_engine)
 
 def zoom_video_composer(
         image_paths,
@@ -215,27 +213,23 @@ def zoom_video_composer(
         direction="out",
         fps=30,
         reverse_images=False,
-        output="output.mp4",
-        threads=-1,
-        tmp_dir="tmp",
         width=1,
         height=1,
         resampling=DEFAULT_RESAMPLING_KEY,
         margin=0.05,
+        output="output.mp4",
+        threads=-1,
+        tmp_dir="tmp",
         keep_frames=False,
         skip_video_generation=False,
         image_engine=DEFAULT_IMAGE_ENGINE,
+        logger=click.echo
 ):
     """Compose a zoom video from multiple provided images."""
-    _image_paths = []
-
     # Read images
-    _image_paths = get_image_paths(image_paths)
-
-    image_paths = _image_paths
-
-    click.echo(f"Reading {len(image_paths)} image files ...")
-    images = read_images(image_paths, image_engine)
+    image_paths = get_image_paths(image_paths)
+    logger(f"Reading {len(image_paths)} image files ...")
+    images = read_images(image_paths, logger, image_engine)
 
     # Setup some additional variables
     easing_func = EASING_FUNCTIONS.get(easing, None)
@@ -253,30 +247,28 @@ def zoom_video_composer(
     num_images = len(images) - 1
     num_frames = int(duration * fps)
     num_frames_half = int(num_frames / 2)
-    print(image_paths)
     tmp_dir_hash = os.path.join(
         tmp_dir, md5("".join(image_paths).encode("utf-8")).hexdigest()
     )
-    print(tmp_dir_hash)
 
     # Calculate sizes based on arguments
     width, height, margin = get_sizes(images[0], width, height, margin)
 
     # Create tmp dir
     if not os.path.exists(tmp_dir_hash):
-        click.echo(f"Creating temporary directory for frames: {tmp_dir_hash} ...")
+        logger(f"Creating temporary directory for frames: {tmp_dir_hash} ...")
         os.makedirs(tmp_dir_hash, exist_ok=True)
 
     # Reverse images
     images = images_reverse(images, direction, reverse_images)
 
     # Blend images (take care of margins)
-    click.echo(f"Blending {len(images)} images ...")
+    logger(f"Blending {len(images)} images ...")
     images = blend_images(images, margin, zoom, resampling_func)
 
     # Create frames
     n_jobs = threads if threads > 0 else cpu_count() - threads
-    click.echo(f"Creating frames in {n_jobs} threads ...")
+    logger(f"Creating frames in {n_jobs} threads ...")
 
     with ThreadPoolExecutor(max_workers=n_jobs) as executor:
         futures = [
@@ -284,14 +276,16 @@ def zoom_video_composer(
                             zoom, width, height, resampling_func, tmp_dir_hash)
             for i in range(num_frames)]
         try:
-            for _ in tqdm(concurrent.futures.as_completed(futures), total=num_frames):
-                pass
+            completed = concurrent.futures.as_completed(futures)
+            for _ in tqdm(range(num_frames), desc="Generating frames"):
+                completed.__next__()
         except KeyboardInterrupt:
             executor.shutdown(wait=False, cancel_futures=True)
             raise
 
     # Create video clip using images in tmp dir and audio if provided
-    create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path)
+    logger(f"Writing video to: {output} ...")
+    create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
 
     # Remove tmp dir
     if not keep_frames and not skip_video_generation:
@@ -299,7 +293,7 @@ def zoom_video_composer(
         if not os.listdir(tmp_dir):
             os.rmdir(tmp_dir)
 
-    click.echo("Done!")
+    logger("Done!")
     return output
 
 
