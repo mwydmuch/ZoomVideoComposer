@@ -22,7 +22,7 @@ To use the script, you need to have Python installed on your machine.
 You can download it [here](https://www.python.org/downloads/) if you are using Windows. 
 MacOS and Linux users should have Python installed by default.
 
-1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.2.3.zip), unpack it, and open the terminal/command line window in the root of the repository.
+1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.3.0.zip), unpack it, and open the terminal/command line window in the root of the repository.
 
 2. Install the required packages by running the following command in the terminal/cmd window:
 ```
@@ -31,7 +31,11 @@ pip install -r requirements.txt
 
 3. Save images to one folder and rename them so that their lexicographic order matches the order you want them to appear in the video. For example, if you have 10 images, name them something like `00001.png`, `00002.png`, ..., `00010.png`.
 
-4. Run a script providing a path to the folder with the images you want to use to create the video (you can also provide paths to each image separately in a specific order) and other options as specified below: 
+4. Start the web UI by running the `gradio_ui.py` and open http://127.0.0.1:7860 in your web browser to use it.
+
+or
+
+4. Run the `zoom_video_composer.py` script providing a path to the folder with the images you want to use to create the video (you can also provide paths to each image separately in a specific order) and other options as specified below: 
 ```
 Usage: zoom_video_composer.py [OPTIONS] IMAGE_PATHS...
 
@@ -46,19 +50,15 @@ Options:
                                   10.0]
   -e, --easing [linear|linearEaseInOut|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic]
                                   Easing function.  [default: easeInOutSine]
-  --linear_ease_duration FLOAT    Duration in seconds of the easeIn and
-                                  easeOut when easing is set to
-                                  'linearEaseInOut'  [default: 5.0]
+  --easing-power FLOAT            Power argument of easeInPow, easeOutPow and
+                                  easeInOutPow easing functions.  [default:
+                                  1.5]
+  --ease-duration FLOAT           Duration of easing in linearWithInOutEase as
+                                  a fraction of video duration.  [default:
+                                  0.02]
   -r, --direction [in|out|inout|outin]
                                   Zoom direction. Inout and outin combine both
                                   directions.  [default: out]
-  -o, --output PATH               Output video file.  [default: output.mp4]
-  -t, --threads INTEGER           Number of threads to use to generate frames.
-                                  Use values <= 0 for number of available
-                                  threads on your machine minus the provided
-                                  absolute value.  [default: -1]
-  --tmp-dir PATH                  Temporary directory to store frames.
-                                  [default: tmp]
   -f, --fps INTEGER               Frames per second of the output video.
                                   [default: 30]
   -w, --width FLOAT               Width of the output video. Values > 1 are
@@ -70,7 +70,7 @@ Options:
                                   Values <= 1 are interpreted as a fraction of
                                   the height of the first image.  [default: 1]
   -s, --resampling [nearest|box|bilinear|hamming|bicubic|lanczos]
-                                  Resampling techique to use when resizing
+                                  Resampling technique to use when resizing
                                   images.  [default: lanczos]
   -m, --margin FLOAT              Size of the margin to cut from the edges of
                                   each image for better blending with the
@@ -79,6 +79,13 @@ Options:
                                   Values <= 1 are interpreted as a fraction of
                                   the smaller size of the first image.
                                   [default: 0.05]
+  -o, --output PATH               Output video file.  [default: output.mp4]
+  -t, --threads INTEGER           Number of threads to use to generate frames.
+                                  Use values <= 0 for number of available
+                                  threads on your machine minus the provided
+                                  absolute value.  [default: -1]
+  --tmp-dir PATH                  Temporary directory to store frames.
+                                  [default: tmp]
   --keep-frames                   Keep frames in the temporary directory.
                                   Otherwise, it will be deleted after the
                                   video is generated.
@@ -87,6 +94,8 @@ Options:
                                   will keep the temporary directory similar to
                                   --keep-frames flag.
   --reverse-images                Reverse the order of the images.
+  --image-engine [pil|cv2]        Image engine to use for image processing.
+                                  [default: cv2]
   --help                          Show this message and exit.
 ```
 
@@ -117,7 +126,7 @@ And use it online (without installing anything on your machine) using this [Goog
 
 - Always use the same zoom factor for all images.
 - Never use the vary option (`V1/2/3/4` and `Vary (Strong)/(Subtle)` buttons) on one of your images. It also changes the parts of the images generated previously, breaking the smoothness of the transition.
-- Sometimes, Midjourney slightly changes the objects' position in the center when zooming out. Nothing can be done with it now; be aware of that and select generations without such shifts.
+- Sometimes, Midjourney slightly changes the objects' position in the center when zooming out. It's recommended to avoid that by carefully selecting the images. It can also be fixed manually before running the script. See [Fix image shift](./guides/fix_image_shift.md)
 - **`Zoom Out 1.5x` button in Midjourney is currently bugged and uses another zoom factor than `--zoom 1.5` prompt argument. To create an animation from images created with this button, use `-z 1.3333` argument for the script.**
 
 
@@ -154,12 +163,14 @@ Repeat until you get the desired number of images.
 
 - [Cats living in the abandoned city](https://www.reddit.com/r/midjourney/comments/14jcyqs/cats_living_in_the_abandoned_city_my_first_zoom/)
 - [Black and white (and 3 more)](https://www.reddit.com/r/midjourney/comments/14x2l6a/zoom_out_animations_collection/)
+- [Platypus at the end of the world (and 2 more]
+(https://www.reddit.com/r/midjourney/comments/14yv90n/zoom_out_animations_lt35_universe_trip_down_the/)
+- [Red diamond](https://www.reddit.com/r/midjourney/comments/153stdj/red_diamond_midjourney_zoomout_animation/) - 1m40
 
 Add your animations here by creating a pull request.
 
 
 ## TODOs
 
-- [ ] Implement better blending of images.
+- [ ] Implement better (more smooth) blending of images.
 - [ ] Add techniques to automatically center shifted images.
-- [ ] Add GUI?
