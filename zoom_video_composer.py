@@ -34,11 +34,8 @@ from multiprocessing import cpu_count
 import click
 from tqdm import tqdm
 
-import helper
-from helper import EASING_FUNCTIONS, IMAGE_ENGINES, DEFAULT_IMAGE_ENGINE, DEFAULT_EASING_KEY, RESAMPLING_FUNCTIONS, \
-    DEFAULT_RESAMPLING_KEY, read_images, get_image_paths, get_sizes, images_reverse, blend_images, process_frame, \
-    create_video_clip
-
+import helpers
+from helpers import *
 
 @click.command()
 @click.argument(
@@ -139,7 +136,7 @@ from helper import EASING_FUNCTIONS, IMAGE_ENGINES, DEFAULT_IMAGE_ENGINE, DEFAUL
 @click.option(
     "-s",
     "--resampling",
-    type=click.Choice(list(RESAMPLING_FUNCTIONS.keys())),
+    type=click.Choice(list(RESAMPLING_FUNCTIONS_PIL.keys())),
     default=DEFAULT_RESAMPLING_KEY,
     help="Resampling technique to use when resizing images.",
     show_default=True,
@@ -178,7 +175,7 @@ from helper import EASING_FUNCTIONS, IMAGE_ENGINES, DEFAULT_IMAGE_ENGINE, DEFAUL
 )
 @click.option(
     "--image-engine",
-    type=click.Choice(IMAGE_ENGINES),
+    type=click.Choice(list(IMAGE_CLASSES.keys())),
     default=DEFAULT_IMAGE_ENGINE,
     help="Image engine to use for image processing.",
     show_default=True,
@@ -206,7 +203,7 @@ def zoom_video_composer_cli(
     """Compose a zoom video from multiple provided images."""
     zoom_video_composer(image_paths, audio_path, zoom, duration, easing, direction, fps, reverse_images, output,
                         threads, tmp_dir, width, height, resampling, margin, keep_frames, skip_video_generation,
-                        image_engine, )
+                        image_engine)
 
 
 def zoom_video_composer(
@@ -229,9 +226,6 @@ def zoom_video_composer(
         skip_video_generation=False,
         image_engine=DEFAULT_IMAGE_ENGINE,
 ):
-    print(image_engine)
-    helper.IMAGE_ENGINE = image_engine
-
     """Compose a zoom video from multiple provided images."""
     _image_paths = []
 
@@ -241,14 +235,18 @@ def zoom_video_composer(
     image_paths = _image_paths
 
     click.echo(f"Reading {len(image_paths)} image files ...")
-    images = read_images(image_paths)
+    images = read_images(image_paths, image_engine)
 
     # Setup some additional variables
     easing_func = EASING_FUNCTIONS.get(easing, None)
     if easing_func is None:
         raise ValueError(f"Unsupported easing function: {easing}")
 
-    resampling_func = RESAMPLING_FUNCTIONS.get(resampling, None)
+    available_resampling_func = RESAMPLING_FUNCTIONS.get(image_engine, None)
+    if available_resampling_func is None:
+        raise ValueError(f"Unsupported image engine function: {resampling}")
+
+    resampling_func = available_resampling_func.get(resampling, None)
     if resampling_func is None:
         raise ValueError(f"Unsupported resampling function: {resampling}")
 
@@ -261,8 +259,7 @@ def zoom_video_composer(
     )
     print(tmp_dir_hash)
 
-    # Calculate sizes
-
+    # Calculate sizes based on arguments
     width, height, margin = get_sizes(images[0], width, height, margin)
 
     # Create tmp dir
@@ -293,14 +290,8 @@ def zoom_video_composer(
             executor.shutdown(wait=False, cancel_futures=True)
             raise
 
-    # Write video
-    image_files = [
-        os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)
-    ]
-
     # Create video clip using images in tmp dir and audio if provided
-    output = create_video_clip(audio_path, fps, height, image_engine, image_files, num_frames, output, tmp_dir_hash,
-                               width)
+    create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path)
 
     # Remove tmp dir
     if not keep_frames and not skip_video_generation:
