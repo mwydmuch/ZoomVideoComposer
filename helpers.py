@@ -97,23 +97,43 @@ class ImagePIL(ImageWrapper):
 
 
 # Easing and resampling functions
+def get_ease_pow_in(power):
+    return lambda x: pow(x, power)
+
+def get_ease_pow_out(power):
+    return lambda x: 1 - pow(1 - x, power)
+
+def get_ease_pow_in_out(power):
+    return lambda x: pow(2, power - 1) * pow(x, power) if x < 0.5 else 1 - pow(-2 * x + 2, power) / 2
+
 EASING_FUNCTIONS = {
     "linear": lambda x: x,
     "easeInSine": lambda x: 1 - cos((x * pi) / 2),
     "easeOutSine": lambda x: sin((x * pi) / 2),
     "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
-    "easeInQuad": lambda x: x * x,
-    "easeOutQuad": lambda x: 1 - (1 - x) * (1 - x),
-    "easeInOutQuad": lambda x: 2 * x * x if x < 0.5 else 1 - pow(-2 * x + 2, 2) / 2,
-    "easeInCubic": lambda x: x * x * x,
-    "easeOutCubic": lambda x: 1 - pow(1 - x, 3),
-    "easeInOutCubic": lambda x: 4 * x * x * x
-    if x < 0.5
-    else 1 - pow(-2 * x + 2, 3) / 2,
+    "easeInQuad": get_ease_pow_in(2),
+    "easeOutQuad": get_ease_pow_out(2),
+    "easeInOutQuad": get_ease_pow_in_out(2),
+    "easeInCubic": get_ease_pow_in(3),
+    "easeOutCubic": get_ease_pow_out(3),
+    "easeInOutCubic": get_ease_pow_in_out(3),
+    "easeInPow": get_ease_pow_in,
+    "easeOutPow": get_ease_pow_out,
+    "easeInOutPow": get_ease_pow_in_out,
 }
-DEFAULT_EASING_KEY = "easeInOutSine"
-DEFAULT_EASING_FUNCTION = EASING_FUNCTIONS[DEFAULT_EASING_KEY]
 
+def get_easing_function(easing, power):
+    easing_func = EASING_FUNCTIONS.get(easing, None)
+    if easing_func is None:
+        raise ValueError(f"Unsupported easing function: {easing}")
+    if easing_func.__code__.co_varnames[0] != "x":
+        easing_func = easing_func(power)
+    return easing_func
+
+DEFAULT_EASING_KEY = "easeInOutSine"
+DEFAULT_EASING_POWER = 1.5
+
+# Image engines and resampling functions
 IMAGE_CLASSES = {
     "pil": ImagePIL,
     "cv2": ImageCV2,
@@ -140,6 +160,18 @@ RESAMPLING_FUNCTIONS = {
     "cv2": RESAMPLING_FUNCTIONS_CV2,
 }
 DEFAULT_RESAMPLING_KEY = "lanczos"
+
+
+def get_resampling_function(resampling, image_engine):
+    available_resampling_func = RESAMPLING_FUNCTIONS.get(image_engine, None)
+    if available_resampling_func is None:
+        raise ValueError(f"Unsupported image engine function: {resampling}")
+    
+    resampling_func = available_resampling_func.get(resampling, None)
+    if resampling_func is None:
+        raise ValueError(f"Unsupported resampling function: {resampling}")
+    
+    return resampling_func
 
 
 # Helper functions of the zoom_video_composer.py

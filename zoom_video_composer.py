@@ -30,48 +30,12 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from multiprocessing import cpu_count
-
 import click
 from tqdm import tqdm
 
-import helpers
 from helpers import *
 
-def get_ease_pow_in(power):
-    return lambda x: pow(x, power)
 
-def get_ease_pow_out(power):
-    return lambda x: 1 - pow(1 - x, power)
-
-def get_ease_pow_in_out(power):
-    return lambda x: pow(2, power - 1) * pow(x, power) if x < 0.5 else 1 - pow(-2 * x + 2, power) / 2
-
-EASING_FUNCTIONS = {
-    "linear": lambda x: x,
-    "easeInSine": lambda x: 1 - cos((x * pi) / 2),
-    "easeOutSine": lambda x: sin((x * pi) / 2),
-    "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
-    "easeInQuad": get_ease_pow_in(2),
-    "easeOutQuad": get_ease_pow_out(2),
-    "easeInOutQuad": get_ease_pow_in_out(2),
-    "easeInCubic": get_ease_pow_in(3),
-    "easeOutCubic": get_ease_pow_out(3),
-    "easeInOutCubic": get_ease_pow_in_out(3),
-    "easeInPow": get_ease_pow_in,
-    "easeOutPow": get_ease_pow_out,
-    "easeInOutPow": get_ease_pow_in_out,
-}
-
-def get_easing_function(easing, power):
-    easing_func = EASING_FUNCTIONS.get(easing, None)
-    if easing_func is None:
-        raise ValueError(f"Unsupported easing function: {easing}")
-    if easing_func.__code__.co_varnames[0] != "x":
-        easing_func = easing_func(power)
-    return easing_func
-
-DEFAULT_EASING_KEY = "easeInOutSine"
-DEFAULT_EASING_POWER = 1.5
 
 
 RESAMPLING_FUNCTIONS = {
@@ -329,11 +293,7 @@ def zoom_video_composer(
 
     # Setup some additional variables
     easing_func = get_easing_function(easing, easing_power)
-
-
-    resampling_func = RESAMPLING_FUNCTIONS.get(resampling, None)
-    if resampling_func is None:
-        raise ValueError(f"Unsupported resampling function: {resampling}")
+    resampling_func = get_resampling_function(resampling)
 
     num_images = len(images) - 1
     num_frames = int(duration * fps)
