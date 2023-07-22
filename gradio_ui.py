@@ -1,4 +1,4 @@
-# from zoom_video_composer import function and use it in gradio
+#!/usr/bin/env python3
 
 import gradio as gr
 from zoom_video_composer import (
