@@ -44,8 +44,11 @@ Options:
                                   2.0]
   -d, --duration FLOAT            Duration of the video in seconds.  [default:
                                   10.0]
-  -e, --easing [linear|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic]
+  -e, --easing [linear|easeInSine|easeOutSine|easeInOutSine|easeInQuad|easeOutQuad|easeInOutQuad|easeInCubic|easeOutCubic|easeInOutCubic|easeInPow|easeOutPow|easeInOutPow]
                                   Easing function.  [default: easeInOutSine]
+  --easing-power FLOAT            Power argument of easeInPow, easeOutPow and
+                                  easeInOutPow easing functions.  [default:
+                                  1.5]
   -r, --direction [in|out|inout|outin]
                                   Zoom direction. Inout and outin combine both
                                   directions.  [default: out]
@@ -78,12 +81,13 @@ Options:
                                   [default: 0.05]
   --keep-frames                   Keep frames in the temporary directory.
                                   Otherwise, it will be deleted after the
-                                  video is generated.
+                                  video is generated.  [default: False]
   --skip-video-generation         Skip video generation. Useful if you only
                                   want to generate the frames. This option
                                   will keep the temporary directory similar to
-                                  --keep-frames flag.
-  --reverse-images                Reverse the order of the images.
+                                  --keep-frames flag.  [default: False]
+  --reverse-images                Reverse the order of the images.  [default:
+                                  False]
   --help                          Show this message and exit.
 ```
 
@@ -114,7 +118,7 @@ And use it online (without installing anything on your machine) using this [Goog
 
 - Always use the same zoom factor for all images.
 - Never use the vary option (`V1/2/3/4` and `Vary (Strong)/(Subtle)` buttons) on one of your images. It also changes the parts of the images generated previously, breaking the smoothness of the transition.
-- Sometimes, Midjourney slightly changes the objects' position in the center when zooming out. Nothing can be done with it now; be aware of that and select generations without such shifts.
+- Sometimes, Midjourney slightly changes the objects' position in the center when zooming out. It's recommended to avoid that by carefully selecting the images. It can also be fixed manually before running the script. See [Fix image shift](./guides/fix_image_shift.md)
 - **`Zoom Out 1.5x` button in Midjourney is currently bugged and uses another zoom factor than `--zoom 1.5` prompt argument. To create an animation from images created with this button, use `-z 1.3333` argument for the script.**
 
 
@@ -150,6 +154,9 @@ Repeat until you get the desired number of images.
 ## Animations created with this script
 
 - [Cats living in the abandoned city](https://www.reddit.com/r/midjourney/comments/14jcyqs/cats_living_in_the_abandoned_city_my_first_zoom/)
+- [Black and white (and 3 more)](https://www.reddit.com/r/midjourney/comments/14x2l6a/zoom_out_animations_collection/)
+- [Platypus at the end of the world (and 2 more]
+(https://www.reddit.com/r/midjourney/comments/14yv90n/zoom_out_animations_lt35_universe_trip_down_the/)
 
 Add your animations here by creating a pull request.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.2.3
+# zoom_video_composer.py v0.3.0
 # https://github.com/mwydmuch/ZoomVideoComposer
 
 # Copyright (c) 2023 Marek Wydmuch and the respective contributors
@@ -36,6 +36,94 @@ from tqdm import tqdm
 
 import helpers
 from helpers import *
+
+def get_ease_pow_in(power):
+    return lambda x: pow(x, power)
+
+def get_ease_pow_out(power):
+    return lambda x: 1 - pow(1 - x, power)
+
+def get_ease_pow_in_out(power):
+    return lambda x: pow(2, power - 1) * pow(x, power) if x < 0.5 else 1 - pow(-2 * x + 2, power) / 2
+
+EASING_FUNCTIONS = {
+    "linear": lambda x: x,
+    "easeInSine": lambda x: 1 - cos((x * pi) / 2),
+    "easeOutSine": lambda x: sin((x * pi) / 2),
+    "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
+    "easeInQuad": get_ease_pow_in(2),
+    "easeOutQuad": get_ease_pow_out(2),
+    "easeInOutQuad": get_ease_pow_in_out(2),
+    "easeInCubic": get_ease_pow_in(3),
+    "easeOutCubic": get_ease_pow_out(3),
+    "easeInOutCubic": get_ease_pow_in_out(3),
+    "easeInPow": get_ease_pow_in,
+    "easeOutPow": get_ease_pow_out,
+    "easeInOutPow": get_ease_pow_in_out,
+}
+
+def get_easing_function(easing, power):
+    easing_func = EASING_FUNCTIONS.get(easing, None)
+    if easing_func is None:
+        raise ValueError(f"Unsupported easing function: {easing}")
+    if easing_func.__code__.co_varnames[0] != "x":
+        easing_func = easing_func(power)
+    return easing_func
+
+DEFAULT_EASING_KEY = "easeInOutSine"
+DEFAULT_EASING_POWER = 1.5
+
+
+RESAMPLING_FUNCTIONS = {
+    "nearest": Image.Resampling.NEAREST,
+    "box": Image.Resampling.BOX,
+    "bilinear": Image.Resampling.BILINEAR,
+    "hamming": Image.Resampling.HAMMING,
+    "bicubic": Image.Resampling.BICUBIC,
+    "lanczos": Image.Resampling.LANCZOS,
+}
+DEFAULT_RESAMPLING_KEY = "lanczos"
+DEFAULT_RESAMPLING_FUNCTION = RESAMPLING_FUNCTIONS[DEFAULT_RESAMPLING_KEY]
+
+
+def zoom_crop(image, zoom, resampling_func=Image.Resampling.LANCZOS):
+    width, height = image.size
+    zoom_size = (int(width * zoom), int(height * zoom))
+    crop_box = (
+        (zoom_size[0] - width) / 2,
+        (zoom_size[1] - height) / 2,
+        (zoom_size[0] + width) / 2,
+        (zoom_size[1] + height) / 2,
+    )
+    return image.resize(zoom_size, resampling_func).crop(crop_box)
+
+
+def resize_scale(image, scale, resampling_func=Image.Resampling.LANCZOS):
+    width, height = image.size
+    return image.resize((int(width * scale), int(height * scale)), resampling_func)
+
+
+def zoom_in_log(easing_func, i, num_frames, num_images):
+    return (easing_func(i / (num_frames - 1))) * num_images
+
+
+def zoom_out_log(easing_func, i, num_frames, num_images):
+    return (1 - easing_func(i / (num_frames - 1))) * num_images
+
+
+def zoom_in(zoom, easing_func, i, num_frames, num_images):
+    return zoom ** zoom_in_log(easing_func, i, num_frames, num_images)
+
+
+def zoom_out(zoom, easing_func, i, num_frames, num_images):
+    return zoom ** zoom_out_log(easing_func, i, num_frames, num_images)
+
+
+def get_px_or_fraction(value, reference_value):
+    if value <= 1:
+        value = reference_value * value
+    return int(value)
+
 
 @click.command()
 @click.argument(
@@ -73,6 +161,13 @@ from helpers import *
     type=click.Choice(list(EASING_FUNCTIONS.keys())),
     default=DEFAULT_EASING_KEY,
     help="Easing function.",
+    show_default=True,
+)
+@click.option(
+    "--easing-power",
+    type=float,
+    default=DEFAULT_EASING_POWER,
+    help="Power argument of easeInPow, easeOutPow and easeInOutPow easing functions.",
     show_default=True,
 )
 @click.option(
@@ -210,6 +305,7 @@ def zoom_video_composer(
         zoom=2.0,
         duration=10.0,
         easing=DEFAULT_EASING_KEY,
+        easing_power=DEFAULT_EASING_POWER,
         direction="out",
         fps=30,
         reverse_images=False,
@@ -232,15 +328,10 @@ def zoom_video_composer(
     images = read_images(image_paths, logger, image_engine)
 
     # Setup some additional variables
-    easing_func = EASING_FUNCTIONS.get(easing, None)
-    if easing_func is None:
-        raise ValueError(f"Unsupported easing function: {easing}")
+    easing_func = get_easing_function(easing, easing_power)
 
-    available_resampling_func = RESAMPLING_FUNCTIONS.get(image_engine, None)
-    if available_resampling_func is None:
-        raise ValueError(f"Unsupported image engine function: {resampling}")
 
-    resampling_func = available_resampling_func.get(resampling, None)
+    resampling_func = RESAMPLING_FUNCTIONS.get(resampling, None)
     if resampling_func is None:
         raise ValueError(f"Unsupported resampling function: {resampling}")
 
