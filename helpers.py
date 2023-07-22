@@ -99,15 +99,17 @@ class ImagePIL(ImageWrapper):
 
 
 # Easing and resampling functions
-def get_ease_pow_in(power):
+
+# Gennerat family of power-based easing functions
+def get_ease_pow_in(power, **kwargs):
     return lambda x: pow(x, power)
 
 
-def get_ease_pow_out(power):
+def get_ease_pow_out(power, **kwargs):
     return lambda x: 1 - pow(1 - x, power)
 
 
-def get_ease_pow_in_out(power):
+def get_ease_pow_in_out(power, **kwargs):
     return (
         lambda x: pow(2, power - 1) * pow(x, power)
         if x < 0.5
@@ -115,30 +117,48 @@ def get_ease_pow_in_out(power):
     )
 
 
+# Returns an linear easing function with in and out ease
+# This is useful for very long animations 
+# where you want a steady zoom speed but still start and stop smoothly.
+def get_linear_with_in_out_ease(ease_duration, **kwargs):
+    # fraction defines both the x and y of the 'square' in which the easing takes place
+    ease_duration_scale = 1 / ease_duration
+    def linear_ease_in_out(x):
+        if x < ease_duration:
+            return (x * ease_duration_scale) ** 2 / ease_duration_scale / 2
+        elif x > (1 - ease_duration):
+            return 1 - ((1 - x) * ease_duration_scale) ** 2 / ease_duration_scale / 2
+        else:
+            return (x - ease_duration) * (1 - ease_duration) / (1 - 2 * ease_duration) + ease_duration / 2
+    return linear_ease_in_out      
+
+
 EASING_FUNCTIONS = {
     "linear": lambda x: x,
+    "linearWithInOutEase": get_linear_with_in_out_ease,
     "easeInSine": lambda x: 1 - cos((x * pi) / 2),
     "easeOutSine": lambda x: sin((x * pi) / 2),
     "easeInOutSine": lambda x: -(cos(pi * x) - 1) / 2,
-    "easeInQuad": get_ease_pow_in(2),
-    "easeOutQuad": get_ease_pow_out(2),
-    "easeInOutQuad": get_ease_pow_in_out(2),
-    "easeInCubic": get_ease_pow_in(3),
-    "easeOutCubic": get_ease_pow_out(3),
-    "easeInOutCubic": get_ease_pow_in_out(3),
+    "easeInQuad": get_ease_pow_in(power=2),
+    "easeOutQuad": get_ease_pow_out(power=2),
+    "easeInOutQuad": get_ease_pow_in_out(power=2),
+    "easeInCubic": get_ease_pow_in(power=3),
+    "easeOutCubic": get_ease_pow_out(power=3),
+    "easeInOutCubic": get_ease_pow_in_out(power=3),
     "easeInPow": get_ease_pow_in,
     "easeOutPow": get_ease_pow_out,
     "easeInOutPow": get_ease_pow_in_out,
 }
 DEFAULT_EASING_KEY = "easeInOutSine"
 DEFAULT_EASING_POWER = 1.5
+DEFAULT_EASE_DURATION = 0.02
 
-def get_easing_function(easing, power):
+def get_easing_function(easing, power, ease_duration):
     easing_func = EASING_FUNCTIONS.get(easing, None)
     if easing_func is None:
         raise ValueError(f"Unsupported easing function: {easing}")
     if easing_func.__code__.co_varnames[0] != "x":
-        easing_func = easing_func(power)
+        easing_func = easing_func(power=power, ease_duration=ease_duration)
     return easing_func
 
 

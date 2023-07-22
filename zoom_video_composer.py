@@ -82,6 +82,13 @@ from helpers import *
     show_default=True,
 )
 @click.option(
+    "--ease-duration",
+    type=float,
+    default=DEFAULT_EASE_DURATION,
+    help="Duration of easing in linearWithInOutEase as a fraction of video duration.",
+    show_default=True,
+)
+@click.option(
     "-r",
     "--direction",
     type=click.Choice(["in", "out", "inout", "outin"]),
@@ -193,6 +200,7 @@ def zoom_video_composer_cli(
     duration=10.0,
     easing=DEFAULT_EASING_KEY,
     easing_power=DEFAULT_EASING_POWER,
+    ease_duration=DEFAULT_EASE_DURATION,
     direction="out",
     fps=30,
     reverse_images=False,
@@ -215,6 +223,7 @@ def zoom_video_composer_cli(
         duration,
         easing,
         easing_power,
+        ease_duration,
         direction,
         fps,
         reverse_images,
@@ -238,6 +247,7 @@ def zoom_video_composer(
     duration=10.0,
     easing=DEFAULT_EASING_KEY,
     easing_power=DEFAULT_EASING_POWER,
+    ease_duration=DEFAULT_EASE_DURATION,
     direction="out",
     fps=30,
     reverse_images=False,
@@ -260,7 +270,7 @@ def zoom_video_composer(
     images = read_images(image_paths, logger, image_engine)
 
     # Setup some additional variables
-    easing_func = get_easing_function(easing, easing_power)
+    easing_func = get_easing_function(easing, easing_power, ease_duration)
     resampling_func = get_resampling_function(resampling, image_engine)
 
     num_images = len(images) - 1
