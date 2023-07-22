@@ -22,7 +22,7 @@ To use the script, you need to have Python installed on your machine.
 You can download it [here](https://www.python.org/downloads/) if you are using Windows. 
 MacOS and Linux users should have Python installed by default.
 
-1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.2.3.zip), unpack it, and open the terminal/command line window in the root of the repository.
+1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.3.0.zip), unpack it, and open the terminal/command line window in the root of the repository.
 
 2. Install the required packages by running the following command in the terminal/cmd window:
 ```
@@ -31,7 +31,11 @@ pip install -r requirements.txt
 
 3. Save images to one folder and rename them so that their lexicographic order matches the order you want them to appear in the video. For example, if you have 10 images, name them something like `00001.png`, `00002.png`, ..., `00010.png`.
 
-4. Run a script providing a path to the folder with the images you want to use to create the video (you can also provide paths to each image separately in a specific order) and other options as specified below: 
+4. Start the web UI by running the `gradio_ui.py` and open http://127.0.0.1:7860 in your web browser to use it.
+
+or
+
+4. Run the `zoom_video_composer.py` script providing a path to the folder with the images you want to use to create the video (you can also provide paths to each image separately in a specific order) and other options as specified below: 
 ```
 Usage: zoom_video_composer.py [OPTIONS] IMAGE_PATHS...
 
@@ -52,13 +56,6 @@ Options:
   -r, --direction [in|out|inout|outin]
                                   Zoom direction. Inout and outin combine both
                                   directions.  [default: out]
-  -o, --output PATH               Output video file.  [default: output.mp4]
-  -t, --threads INTEGER           Number of threads to use to generate frames.
-                                  Use values <= 0 for number of available
-                                  threads on your machine minus the provided
-                                  absolute value.  [default: -1]
-  --tmp-dir PATH                  Temporary directory to store frames.
-                                  [default: tmp]
   -f, --fps INTEGER               Frames per second of the output video.
                                   [default: 30]
   -w, --width FLOAT               Width of the output video. Values > 1 are
@@ -70,7 +67,7 @@ Options:
                                   Values <= 1 are interpreted as a fraction of
                                   the height of the first image.  [default: 1]
   -s, --resampling [nearest|box|bilinear|hamming|bicubic|lanczos]
-                                  Resampling techique to use when resizing
+                                  Resampling technique to use when resizing
                                   images.  [default: lanczos]
   -m, --margin FLOAT              Size of the margin to cut from the edges of
                                   each image for better blending with the
@@ -79,15 +76,23 @@ Options:
                                   Values <= 1 are interpreted as a fraction of
                                   the smaller size of the first image.
                                   [default: 0.05]
+  -o, --output PATH               Output video file.  [default: output.mp4]
+  -t, --threads INTEGER           Number of threads to use to generate frames.
+                                  Use values <= 0 for number of available
+                                  threads on your machine minus the provided
+                                  absolute value.  [default: -1]
+  --tmp-dir PATH                  Temporary directory to store frames.
+                                  [default: tmp]
   --keep-frames                   Keep frames in the temporary directory.
                                   Otherwise, it will be deleted after the
-                                  video is generated.  [default: False]
+                                  video is generated.
   --skip-video-generation         Skip video generation. Useful if you only
                                   want to generate the frames. This option
                                   will keep the temporary directory similar to
-                                  --keep-frames flag.  [default: False]
-  --reverse-images                Reverse the order of the images.  [default:
-                                  False]
+                                  --keep-frames flag.
+  --reverse-images                Reverse the order of the images.
+  --image-engine [pil|cv2]        Image engine to use for image processing.
+                                  [default: cv2]
   --help                          Show this message and exit.
 ```
 
@@ -164,6 +169,5 @@ Add your animations here by creating a pull request.
 
 ## TODOs
 
-- [ ] Implement better blending of images.
+- [ ] Implement better (more smooth) blending of images.
 - [ ] Add techniques to automatically center shifted images.
-- [ ] Add GUI?
