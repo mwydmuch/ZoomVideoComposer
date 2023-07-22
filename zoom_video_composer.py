@@ -36,59 +36,6 @@ from tqdm import tqdm
 from helpers import *
 
 
-
-
-RESAMPLING_FUNCTIONS = {
-    "nearest": Image.Resampling.NEAREST,
-    "box": Image.Resampling.BOX,
-    "bilinear": Image.Resampling.BILINEAR,
-    "hamming": Image.Resampling.HAMMING,
-    "bicubic": Image.Resampling.BICUBIC,
-    "lanczos": Image.Resampling.LANCZOS,
-}
-DEFAULT_RESAMPLING_KEY = "lanczos"
-DEFAULT_RESAMPLING_FUNCTION = RESAMPLING_FUNCTIONS[DEFAULT_RESAMPLING_KEY]
-
-
-def zoom_crop(image, zoom, resampling_func=Image.Resampling.LANCZOS):
-    width, height = image.size
-    zoom_size = (int(width * zoom), int(height * zoom))
-    crop_box = (
-        (zoom_size[0] - width) / 2,
-        (zoom_size[1] - height) / 2,
-        (zoom_size[0] + width) / 2,
-        (zoom_size[1] + height) / 2,
-    )
-    return image.resize(zoom_size, resampling_func).crop(crop_box)
-
-
-def resize_scale(image, scale, resampling_func=Image.Resampling.LANCZOS):
-    width, height = image.size
-    return image.resize((int(width * scale), int(height * scale)), resampling_func)
-
-
-def zoom_in_log(easing_func, i, num_frames, num_images):
-    return (easing_func(i / (num_frames - 1))) * num_images
-
-
-def zoom_out_log(easing_func, i, num_frames, num_images):
-    return (1 - easing_func(i / (num_frames - 1))) * num_images
-
-
-def zoom_in(zoom, easing_func, i, num_frames, num_images):
-    return zoom ** zoom_in_log(easing_func, i, num_frames, num_images)
-
-
-def zoom_out(zoom, easing_func, i, num_frames, num_images):
-    return zoom ** zoom_out_log(easing_func, i, num_frames, num_images)
-
-
-def get_px_or_fraction(value, reference_value):
-    if value <= 1:
-        value = reference_value * value
-    return int(value)
-
-
 @click.command()
 @click.argument(
     "image_paths",
@@ -156,7 +103,7 @@ def get_px_or_fraction(value, reference_value):
     type=float,
     default=1,
     help="Width of the output video. Values > 1 are interpreted as specific sizes in pixels. Values <= 1 are "
-         "interpreted as a fraction of the width of the first image.",
+    "interpreted as a fraction of the width of the first image.",
     show_default=True,
 )
 @click.option(
@@ -165,7 +112,7 @@ def get_px_or_fraction(value, reference_value):
     type=float,
     default=1,
     help="Height of the output video. Values > 1 are interpreted as specific sizes in pixels. Values <= 1 are "
-         "interpreted as a fraction of the height of the first image.",
+    "interpreted as a fraction of the height of the first image.",
     show_default=True,
 )
 @click.option(
@@ -182,8 +129,8 @@ def get_px_or_fraction(value, reference_value):
     type=float,
     default=0.05,
     help="Size of the margin to cut from the edges of each image for better blending with the next/previous image. "
-         "Values > 1 are interpreted as specific sizes in pixels. Values <= 1 are interpreted as a fraction of the "
-         "smaller size of the first image.",
+    "Values > 1 are interpreted as specific sizes in pixels. Values <= 1 are interpreted as a fraction of the "
+    "smaller size of the first image.",
     show_default=True,
 )
 @click.option(
@@ -200,7 +147,7 @@ def get_px_or_fraction(value, reference_value):
     type=int,
     default=-1,
     help="Number of threads to use to generate frames. Use values <= 0 for number of available threads on your "
-         "machine minus the provided absolute value.",
+    "machine minus the provided absolute value.",
     show_default=True,
 )
 @click.option(
@@ -222,7 +169,7 @@ def get_px_or_fraction(value, reference_value):
     is_flag=True,
     default=False,
     help="Skip video generation. Useful if you only want to generate the frames. This option will keep the temporary "
-         "directory similar to --keep-frames flag.",
+    "directory similar to --keep-frames flag.",
     show_default=True,
 )
 @click.option(
@@ -240,50 +187,71 @@ def get_px_or_fraction(value, reference_value):
     show_default=True,
 )
 def zoom_video_composer_cli(
-        image_paths,
-        audio_path=None,
-        zoom=2.0,
-        duration=10.0,
-        easing=DEFAULT_EASING_KEY,
-        direction="out",
-        fps=30,
-        reverse_images=False,
-        width=1,
-        height=1,
-        resampling=DEFAULT_RESAMPLING_KEY,
-        margin=0.05,
-        output="output.mp4",
-        threads=-1,
-        tmp_dir="tmp",
-        keep_frames=False,
-        skip_video_generation=False,
-        image_engine=DEFAULT_IMAGE_ENGINE,
+    image_paths,
+    audio_path=None,
+    zoom=2.0,
+    duration=10.0,
+    easing=DEFAULT_EASING_KEY,
+    easing_power=DEFAULT_EASING_POWER,
+    direction="out",
+    fps=30,
+    reverse_images=False,
+    width=1,
+    height=1,
+    resampling=DEFAULT_RESAMPLING_KEY,
+    margin=0.05,
+    output="output.mp4",
+    threads=-1,
+    tmp_dir="tmp",
+    keep_frames=False,
+    skip_video_generation=False,
+    image_engine=DEFAULT_IMAGE_ENGINE,
 ):
     """Compose a zoom video from multiple provided images."""
-    zoom_video_composer(image_paths, audio_path, zoom, duration, easing, direction, fps, reverse_images, width, height, resampling, 
-                        margin, output, threads, tmp_dir, keep_frames, skip_video_generation, image_engine)
+    zoom_video_composer(
+        image_paths,
+        audio_path,
+        zoom,
+        duration,
+        easing,
+        easing_power,
+        direction,
+        fps,
+        reverse_images,
+        width,
+        height,
+        resampling,
+        margin,
+        output,
+        threads,
+        tmp_dir,
+        keep_frames,
+        skip_video_generation,
+        image_engine,
+    )
+
 
 def zoom_video_composer(
-        image_paths,
-        audio_path=None,
-        zoom=2.0,
-        duration=10.0,
-        easing=DEFAULT_EASING_KEY,
-        easing_power=DEFAULT_EASING_POWER,
-        direction="out",
-        fps=30,
-        reverse_images=False,
-        width=1,
-        height=1,
-        resampling=DEFAULT_RESAMPLING_KEY,
-        margin=0.05,
-        output="output.mp4",
-        threads=-1,
-        tmp_dir="tmp",
-        keep_frames=False,
-        skip_video_generation=False,
-        image_engine=DEFAULT_IMAGE_ENGINE,
-        logger=click.echo
+    image_paths,
+    audio_path=None,
+    zoom=2.0,
+    duration=10.0,
+    easing=DEFAULT_EASING_KEY,
+    easing_power=DEFAULT_EASING_POWER,
+    direction="out",
+    fps=30,
+    reverse_images=False,
+    width=1,
+    height=1,
+    resampling=DEFAULT_RESAMPLING_KEY,
+    margin=0.05,
+    output="output.mp4",
+    threads=-1,
+    tmp_dir="tmp",
+    keep_frames=False,
+    skip_video_generation=False,
+    image_engine=DEFAULT_IMAGE_ENGINE,
+    logger=click.echo,
 ):
     """Compose a zoom video from multiple provided images."""
     # Read images
@@ -293,7 +261,7 @@ def zoom_video_composer(
 
     # Setup some additional variables
     easing_func = get_easing_function(easing, easing_power)
-    resampling_func = get_resampling_function(resampling)
+    resampling_func = get_resampling_function(resampling, image_engine)
 
     num_images = len(images) - 1
     num_frames = int(duration * fps)
@@ -323,12 +291,26 @@ def zoom_video_composer(
 
     with ThreadPoolExecutor(max_workers=n_jobs) as executor:
         futures = [
-            executor.submit(process_frame, i, images, direction, easing_func, num_frames, num_frames_half, num_images,
-                            zoom, width, height, resampling_func, tmp_dir_hash)
-            for i in range(num_frames)]
+            executor.submit(
+                process_frame,
+                i,
+                images,
+                direction,
+                easing_func,
+                num_frames,
+                num_frames_half,
+                num_images,
+                zoom,
+                width,
+                height,
+                resampling_func,
+                tmp_dir_hash,
+            )
+            for i in range(num_frames)
+        ]
         try:
             completed = concurrent.futures.as_completed(futures)
-            for _ in tqdm(range(num_frames), desc="Generating frames"):
+            for _ in tqdm(range(num_frames), desc="Generating the frames"):
                 completed.__next__()
         except KeyboardInterrupt:
             executor.shutdown(wait=False, cancel_futures=True)

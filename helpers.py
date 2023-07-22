@@ -19,16 +19,16 @@ class ImageWrapper(object):
     @staticmethod
     def load(image_path):
         raise NotImplementedError
-    
+
     def save(self, image_path):
         raise NotImplementedError
-    
+
     def resize(self, size, resampling_func):
         raise NotImplementedError
 
     def crop(self, crop_box):
         raise NotImplementedError
-    
+
     def paste(self, image, x, y):
         raise NotImplementedError
 
@@ -41,10 +41,12 @@ class ImageWrapper(object):
             int((zoom_size[1] + self.height) / 2),
         )
         return self.resize(zoom_size, resampling_func).crop(crop_box)
-    
+
     def resize_scale(self, scale, resampling_func):
-        return self.resize((int(self.width * scale), int(self.height * scale)), resampling_func)
-    
+        return self.resize(
+            (int(self.width * scale), int(self.height * scale)), resampling_func
+        )
+
 
 class ImageCV2(ImageWrapper):
     def __init__(self, image):
@@ -55,7 +57,7 @@ class ImageCV2(ImageWrapper):
     @staticmethod
     def load(image_path):
         return ImageCV2(cv2.imread(image_path))
-    
+
     def save(self, image_path):
         cv2.imwrite(image_path, self.image)
 
@@ -64,12 +66,12 @@ class ImageCV2(ImageWrapper):
         return ImageCV2(new_image)
 
     def crop(self, crop_box):
-        new_image = self.image[crop_box[1]:crop_box[3], crop_box[0]:crop_box[2]]
+        new_image = self.image[crop_box[1] : crop_box[3], crop_box[0] : crop_box[2]]
         return ImageCV2(new_image)
-    
+
     def paste(self, image, x, y):
-        self.image[y:y + image.height, x:x + image.width] = image.image
-    
+        self.image[y : y + image.height, x : x + image.width] = image.image
+
 
 class ImagePIL(ImageWrapper):
     def __init__(self, image):
@@ -80,18 +82,18 @@ class ImagePIL(ImageWrapper):
     @staticmethod
     def load(image_path):
         return ImagePIL(Image.open(image_path))
-    
+
     def save(self, image_path):
         self.image.save(image_path)
 
     def resize(self, size, resampling_func):
         new_image = self.image.resize(size, resampling_func)
         return ImagePIL(new_image)
-    
+
     def crop(self, crop_box):
         new_image = self.image.crop(crop_box)
         return ImagePIL(new_image)
-    
+
     def paste(self, image, x, y):
         self.image.paste(image.image, (x, y))
 
@@ -100,11 +102,18 @@ class ImagePIL(ImageWrapper):
 def get_ease_pow_in(power):
     return lambda x: pow(x, power)
 
+
 def get_ease_pow_out(power):
     return lambda x: 1 - pow(1 - x, power)
 
+
 def get_ease_pow_in_out(power):
-    return lambda x: pow(2, power - 1) * pow(x, power) if x < 0.5 else 1 - pow(-2 * x + 2, power) / 2
+    return (
+        lambda x: pow(2, power - 1) * pow(x, power)
+        if x < 0.5
+        else 1 - pow(-2 * x + 2, power) / 2
+    )
+
 
 EASING_FUNCTIONS = {
     "linear": lambda x: x,
@@ -121,6 +130,8 @@ EASING_FUNCTIONS = {
     "easeOutPow": get_ease_pow_out,
     "easeInOutPow": get_ease_pow_in_out,
 }
+DEFAULT_EASING_KEY = "easeInOutSine"
+DEFAULT_EASING_POWER = 1.5
 
 def get_easing_function(easing, power):
     easing_func = EASING_FUNCTIONS.get(easing, None)
@@ -130,8 +141,6 @@ def get_easing_function(easing, power):
         easing_func = easing_func(power)
     return easing_func
 
-DEFAULT_EASING_KEY = "easeInOutSine"
-DEFAULT_EASING_POWER = 1.5
 
 # Image engines and resampling functions
 IMAGE_CLASSES = {
@@ -166,11 +175,11 @@ def get_resampling_function(resampling, image_engine):
     available_resampling_func = RESAMPLING_FUNCTIONS.get(image_engine, None)
     if available_resampling_func is None:
         raise ValueError(f"Unsupported image engine function: {resampling}")
-    
+
     resampling_func = available_resampling_func.get(resampling, None)
     if resampling_func is None:
         raise ValueError(f"Unsupported resampling function: {resampling}")
-    
+
     return resampling_func
 
 
@@ -201,7 +210,7 @@ def read_images(image_paths, logger, image_engine=DEFAULT_IMAGE_ENGINE):
     image_class = IMAGE_CLASSES.get(image_engine, None)
     if image_class is None:
         raise ValueError(f"Unsupported image engine function: {image_class}")
-    
+
     images = []
     for image_path in image_paths:
         if not image_path.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
@@ -276,26 +285,34 @@ def blend_images(images, margin, zoom, resampling_func):
     return images
 
 
-def process_frame(i, images, direction, easing_func, num_frames, num_frames_half, num_images, zoom, width, height,
-                  resampling_func, tmp_dir_hash):
+def process_frame(
+    i,
+    images,
+    direction,
+    easing_func,
+    num_frames,
+    num_frames_half,
+    num_images,
+    zoom,
+    width,
+    height,
+    resampling_func,
+    tmp_dir_hash,
+):
     if direction == "in":
         current_zoom_log = zoom_in_log(easing_func, i, num_frames, num_images)
     elif direction == "out":
         current_zoom_log = zoom_out_log(easing_func, i, num_frames, num_images)
     elif direction == "inout":
         if i < num_frames_half:
-            current_zoom_log = zoom_in_log(
-                easing_func, i, num_frames_half, num_images
-            )
+            current_zoom_log = zoom_in_log(easing_func, i, num_frames_half, num_images)
         else:
             current_zoom_log = zoom_out_log(
                 easing_func, i - num_frames_half, num_frames_half, num_images
             )
     elif direction == "outin":
         if i < num_frames_half:
-            current_zoom_log = zoom_out_log(
-                easing_func, i, num_frames_half, num_images
-            )
+            current_zoom_log = zoom_out_log(easing_func, i, num_frames_half, num_images)
         else:
             current_zoom_log = zoom_in_log(
                 easing_func, i - num_frames_half, num_frames_half, num_images
@@ -331,6 +348,18 @@ def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path, th
         video_clip = video_clip.set_audio(audio_clip)
         video_write_kwargs["audio_codec"] = "aac"
 
-    video_clip.write_videofile(output_path,
-                               logger=TqdmProgressBarLogger(bars={"t": {"title": "Writting a movie file", "total": num_frames, "message": None, "index": -1}}, print_messages=False), 
-                               **video_write_kwargs)
+    video_clip.write_videofile(
+        output_path,
+        logger=TqdmProgressBarLogger(
+            bars={
+                "t": {
+                    "title": "Writting the movie file",
+                    "total": num_frames,
+                    "message": None,
+                    "index": -1,
+                }
+            },
+            print_messages=False,
+        ),
+        **video_write_kwargs,
+    )
