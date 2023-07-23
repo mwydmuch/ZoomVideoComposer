@@ -166,6 +166,7 @@ Repeat until you get the desired number of images.
 - [Platypus at the end of the world (and 2 more]
 (https://www.reddit.com/r/midjourney/comments/14yv90n/zoom_out_animations_lt35_universe_trip_down_the/)
 - [Red diamond](https://www.reddit.com/r/midjourney/comments/153stdj/red_diamond_midjourney_zoomout_animation/) - 1m40
+- [Concept Trailer "A.I. Noir - Berlin City Crime Stories"](https://www.youtube.com/watch?v=7rAQjomKSPo)
 
 Add your animations here by creating a pull request.
 
