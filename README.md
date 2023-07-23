@@ -22,7 +22,7 @@ To use the script, you need to have Python installed on your machine.
 You can download it [here](https://www.python.org/downloads/) if you are using Windows. 
 MacOS and Linux users should have Python installed by default.
 
-1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.3.0.zip), unpack it, and open the terminal/command line window in the root of the repository.
+1. [Download this repository](https://github.com/mwydmuch/ZoomVideoComposer/archive/refs/tags/0.3.1.zip), unpack it, and open the terminal/command line window in the root of the repository.
 
 2. Install the required packages by running the following command in the terminal/cmd window:
 ```

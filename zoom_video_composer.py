@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.3.0
+# zoom_video_composer.py v0.3.1
 # https://github.com/mwydmuch/ZoomVideoComposer
 
 # Copyright (c) 2023 Marek Wydmuch and the respective contributors
@@ -23,7 +23,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-VERSION = "0.3.0"
 import concurrent
 import os
 import shutil
@@ -35,6 +34,7 @@ from tqdm import tqdm
 
 from helpers import *
 
+VERSION = "0.3.1"
 
 @click.command()
 @click.argument(
@@ -327,7 +327,7 @@ def zoom_video_composer(
             raise
 
     # Create video clip using images in tmp dir and audio if provided
-    logger(f"Writing video to: {output} ...")
+    logger(f"Writting video in {n_jobs} threads to: {output} ...")
     create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
 
     # Remove tmp dir

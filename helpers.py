@@ -52,7 +52,7 @@ class ImageCV2(ImageWrapper):
     def __init__(self, image):
         super().__init__()
         self.image = image
-        self.width, self.height = self.image.shape[:2]
+        self.height, self.width = self.image.shape[:2]
 
     @staticmethod
     def load(image_path):
