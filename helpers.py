@@ -288,10 +288,11 @@ def blend_images(images, margin, zoom, resampling_func):
         image.paste(inner_image, margin, margin)
         images[i] = image
 
-    images_resized = [i.resize_scale(zoom, resampling_func) for i in images]
+    image_resized = images[num_images].resize_scale(zoom, resampling_func)
     for i in range(num_images, 0, -1):
-        inner_image = images_resized[i]
-        image = images_resized[i - 1]
+        inner_image = image_resized
+        next_image_resized = images[i - 1].resize_scale(zoom, resampling_func)
+        image = next_image_resized
         inner_image = inner_image.resize_scale(1.0 / zoom, resampling_func)
 
         image.paste(
@@ -299,9 +300,9 @@ def blend_images(images, margin, zoom, resampling_func):
             int((image.width - inner_image.width) / 2),
             int((image.height - inner_image.height) / 2),
         )
-        images_resized[i] = image
+        image_resized = next_image_resized
+        images[i] = image
 
-    images = images_resized
     return images
 
 
