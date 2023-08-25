@@ -193,6 +193,13 @@ VERSION = "0.3.1"
     help="Image engine to use for image processing.",
     show_default=True,
 )
+@click.option(
+    "--resume",
+    is_flag=True,
+    default=False,
+    help="Resume generation of the video.",
+    show_default=True,
+)
 def zoom_video_composer_cli(
     image_paths,
     audio_path=None,
@@ -214,6 +221,7 @@ def zoom_video_composer_cli(
     keep_frames=False,
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
+    resume=False,
 ):
     """Compose a zoom video from multiple provided images."""
     zoom_video_composer(
@@ -237,6 +245,7 @@ def zoom_video_composer_cli(
         keep_frames,
         skip_video_generation,
         image_engine,
+        resume,
     )
 
 
@@ -261,9 +270,13 @@ def zoom_video_composer(
     keep_frames=False,
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
+    resume=False,
     logger=click.echo,
 ):
     """Compose a zoom video from multiple provided images."""
+    video_params = f'zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}'
+    logger(f"Starting zoom video composition with parameters:\n{video_params}")
+
     # Read images
     image_paths = get_image_paths(image_paths)
     logger(f"Reading {len(image_paths)} image files ...")
@@ -276,8 +289,9 @@ def zoom_video_composer(
     num_images = len(images) - 1
     num_frames = int(duration * fps)
     num_frames_half = int(num_frames / 2)
+    video_params_to_hash = video_params + "".join(image_paths)
     tmp_dir_hash = os.path.join(
-        tmp_dir, md5("".join(image_paths).encode("utf-8")).hexdigest()
+        tmp_dir, md5(video_params_to_hash.encode("utf-8")).hexdigest()
     )
 
     # Calculate sizes based on arguments
@@ -299,6 +313,11 @@ def zoom_video_composer(
     n_jobs = threads if threads > 0 else cpu_count() - threads
     logger(f"Creating frames in {n_jobs} threads ...")
 
+    start_frame = 0
+    if resume:
+        while os.path.exists(os.path.join(tmp_dir_hash, f"{start_frame:06d}.png")):
+            start_frame += 1
+
     with ThreadPoolExecutor(max_workers=n_jobs) as executor:
         futures = [
             executor.submit(
@@ -316,15 +335,18 @@ def zoom_video_composer(
                 resampling_func,
                 tmp_dir_hash,
             )
-            for i in range(num_frames)
+            for i in range(start_frame, num_frames)
         ]
         try:
             completed = concurrent.futures.as_completed(futures)
-            for _ in tqdm(range(num_frames), desc="Generating the frames"):
+            for _ in tqdm(range(num_frames - start_frame), desc="Generating the frames"):
                 completed.__next__()
         except KeyboardInterrupt:
             executor.shutdown(wait=False, cancel_futures=True)
             raise
+    
+    # Images are no longer needed
+    del images
 
     # Create video clip using images in tmp dir and audio if provided
     logger(f"Writting video in {n_jobs} threads to: {output} ...")
@@ -332,6 +354,7 @@ def zoom_video_composer(
 
     # Remove tmp dir
     if not keep_frames and not skip_video_generation:
+        logger(f"Removing temporary directory: {tmp_dir_hash} ...")
         shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
         if not os.listdir(tmp_dir):
             os.rmdir(tmp_dir)
