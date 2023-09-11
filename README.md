@@ -175,6 +175,11 @@ Repeat until you get the desired number of images.
 Add your animations here by creating a pull request.
 
 
+## Projects using Video
+
+- [GoAPI Midjourney ZoomVideo Generator](https://huggingface.co/spaces/GoAPI/Midjourney-zoom-video-generator-GoAPI)
+
+
 ## TODOs
 
 - [ ] Implement better (more smooth) blending of images.
