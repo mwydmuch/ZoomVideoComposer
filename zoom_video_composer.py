@@ -26,6 +26,7 @@
 import concurrent
 import os
 import shutil
+import time
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from multiprocessing import cpu_count
@@ -131,6 +132,14 @@ VERSION = "0.3.2"
     show_default=True,
 )
 @click.option(
+    "-ss",
+    "--supersample",
+    type=float,
+    default=1,
+    help="Supersamples (scales) the images by this factor. A value > 1 will increase the smoothness of the animation, but will also increase the duration of the rendering.",
+    show_default=True,
+)
+@click.option(
     "-m",
     "--margin",
     type=float,
@@ -214,6 +223,7 @@ def zoom_video_composer_cli(
     width=1,
     height=1,
     resampling=DEFAULT_RESAMPLING_KEY,
+    super_sampling_factor=1.0,
     margin=0.05,
     output="output.mp4",
     threads=-1,
@@ -238,6 +248,7 @@ def zoom_video_composer_cli(
         width,
         height,
         resampling,
+        super_sampling_factor,
         margin,
         output,
         threads,
@@ -263,6 +274,7 @@ def zoom_video_composer(
     width=1,
     height=1,
     resampling=DEFAULT_RESAMPLING_KEY,
+    super_sampling_factor=1.0,
     margin=0.05,
     output="output.mp4",
     threads=-1,
@@ -273,6 +285,8 @@ def zoom_video_composer(
     resume=False,
     logger=click.echo,
 ):
+    start_time = time.time()
+
     """Compose a zoom video from multiple provided images."""
     video_params = f'zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}'
     logger(f"Starting zoom video composition with parameters:\n{video_params}")
@@ -308,6 +322,10 @@ def zoom_video_composer(
     # Blend images (take care of margins)
     logger(f"Blending {len(images)} images ...")
     images = blend_images(images, margin, zoom, resampling_func)
+
+    # Super sampling
+    logger(f"Super sample factor: {super_sampling_factor}.")
+    images = resize_all_images(images, super_sampling_factor, resampling_func);
 
     # Create frames
     n_jobs = threads if threads > 0 else cpu_count() - threads
@@ -349,7 +367,7 @@ def zoom_video_composer(
     del images
 
     # Create video clip using images in tmp dir and audio if provided
-    logger(f"Writting video in {n_jobs} threads to: {output} ...")
+    logger(f"Writing video in {n_jobs} threads to: {output} ...")
     create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
 
     # Remove tmp dir
@@ -359,6 +377,7 @@ def zoom_video_composer(
         if not os.listdir(tmp_dir):
             os.rmdir(tmp_dir)
 
+    logger(f"Total time: {round(time.time() - start_time, 2)}s")
     logger("Done!")
     return output
 

@@ -1,5 +1,5 @@
 import os
-from math import cos, pi, sin, pow, ceil
+from math import cos, pi, sin, pow, ceil, isclose
 
 import cv2
 import gradio as gr
@@ -305,6 +305,16 @@ def blend_images(images, margin, zoom, resampling_func):
 
     return images
 
+def resize_all_image(images, resize_factor, resampling_func):
+    if isclose(resize_factor, 1.0):
+        return images
+    
+    for i in range(0, images):
+        image = images[i]
+        image = image.resize((image.width * resize_factor, image.height * resize_factor), resampling_func)
+        images[i] = Image
+
+    return images
 
 def process_frame(
     i,
@@ -360,7 +370,7 @@ def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path, th
         os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)
     ]
     video_clip = ImageSequenceClip(image_files, fps=fps)
-    video_write_kwargs = {"codec": "libx264", "threads": threads}
+    video_write_kwargs = {"codec": "libx264", "threads": threads, "bitrate": "8M"}
 
     # Add audio
     if audio_path:
@@ -374,7 +384,7 @@ def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path, th
         logger=TqdmProgressBarLogger(
             bars={
                 "t": {
-                    "title": "Writting the movie file",
+                    "title": "Writing the movie file",
                     "total": num_frames,
                     "message": None,
                     "index": -1,
