@@ -37,6 +37,7 @@ from helpers import *
 
 VERSION = "0.3.2"
 
+
 @click.command()
 @click.argument(
     "image_paths",
@@ -133,7 +134,7 @@ VERSION = "0.3.2"
 )
 @click.option(
     "-ss",
-    "--supersample",
+    "--super-sampling-factor",
     type=float,
     default=1,
     help="Supersamples (scales) the images by this factor. A value > 1 will increase the smoothness of the animation, but will also increase the duration of the rendering.",
@@ -288,7 +289,7 @@ def zoom_video_composer(
     start_time = time.time()
 
     """Compose a zoom video from multiple provided images."""
-    video_params = f'zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}'
+    video_params = f"zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}"
     logger(f"Starting zoom video composition with parameters:\n{video_params}")
 
     # Read images
@@ -325,7 +326,7 @@ def zoom_video_composer(
 
     # Super sampling
     logger(f"Super sample factor: {super_sampling_factor}.")
-    images = resize_all_images(images, super_sampling_factor, resampling_func);
+    images = resize_all_images(images, super_sampling_factor, resampling_func)
 
     # Create frames
     n_jobs = threads if threads > 0 else cpu_count() - threads
@@ -357,12 +358,14 @@ def zoom_video_composer(
         ]
         try:
             completed = concurrent.futures.as_completed(futures)
-            for _ in tqdm(range(num_frames - start_frame), desc="Generating the frames"):
+            for _ in tqdm(
+                range(num_frames - start_frame), desc="Generating the frames"
+            ):
                 completed.__next__()
         except KeyboardInterrupt:
             executor.shutdown(wait=False, cancel_futures=True)
             raise
-    
+
     # Images are no longer needed
     del images
 

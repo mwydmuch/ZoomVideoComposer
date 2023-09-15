@@ -167,3 +167,4 @@ tmp
 *.mp4
 
 .vscode/launch.json
+.vscode/settings.json
