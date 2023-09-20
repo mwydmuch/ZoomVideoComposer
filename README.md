@@ -1,6 +1,6 @@
 # ZoomVideoComposer
 
-This script aims to help to create zoom out/in videos from the set of images (generated, for example, with [Midjourney 5.2 zoom out feature](https://docs.midjourney.com/docs/zoom-out) or other AI tools like Stable Diffusion or Photoshop) in a few minutes (depending on the number of images used of course).
+This script aims to help to create zoom out/in videos from the set of images (generated, for example, with [Midjourney 5.2+ zoom out feature](https://docs.midjourney.com/docs/zoom-out) or other AI tools like Stable Diffusion or Photoshop) in a few minutes (depending on the number of images used of course).
 
 Features:
 
@@ -14,7 +14,7 @@ Limitations:
 - Currently, the zoom factor/ratio between all the images needs to be the same.
 - At the moment, the images need to be perfectly centered (Midjourney 5.2 zoom out feature from time to time shifts the image that is zoomed out, and such images might not look good in the video).
 
-I create it for myself to make experimentation with Midjourney easier for me. I've might miss some possible use cases, so if something is not working for you, or you would like to have some feature, please let me know I will try to fix/improve it. Contributions are welcome, just open a PR.
+I created it for myself to make experimentation with Midjourney easier for me. I might have missed some possible use cases, so if something is not working for you or you would like to have some feature, please let me know, and I will try to fix/improve it. Contributions are welcome, just open a PR.
 
 ## Usage
 
@@ -139,7 +139,7 @@ And use it online (without installing anything on your machine) using this [Goog
 
 ## Tips on editing the images
 
-The script stack images on top of each other and blends them together.
+The script stacks images on top of each other and blends them together.
 The most zoomed-in images are always on top of less zoomed-in images,
 so if you want to modify something on the images manually, you can do it only on the most zoomed-in image.
 
@@ -167,7 +167,7 @@ You can also create proper images using Photoshop:
 
 Repeat until you get the desired number of images.
 
-## Animations created with this script
+## Animations created with ZoomVideoComposer
 
 - [Cats living in the abandoned city](https://www.reddit.com/r/midjourney/comments/14jcyqs/cats_living_in_the_abandoned_city_my_first_zoom/) (the example animation)
 - [Red diamond](https://www.reddit.com/r/midjourney/comments/153stdj/red_diamond_midjourney_zoomout_animation/) (long - 1m40)
@@ -177,9 +177,9 @@ Repeat until you get the desired number of images.
 
 Add your animations here by creating a pull request.
 
-## Projects using Video
+## Projects using ZoomVideoComposer
 
-- [GoAPI Midjourney ZoomVideo Generator](https://huggingface.co/spaces/GoAPI/Midjourney-zoom-video-generator-GoAPI)
+- [GoAPI Midjourney ZoomVideo Generator](https://huggingface.co/spaces/GoAPI/Midjourney-zoom-video-generator-GoAPI) - creates zoom video from a set of prompts using [GoAPI Midjourney API](https://www.goapi.ai/midjourney-api) to generate images.
 
 ## TODOs
 
