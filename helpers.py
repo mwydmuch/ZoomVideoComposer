@@ -366,7 +366,7 @@ def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path, th
         os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)
     ]
     video_clip = ImageSequenceClip(image_files, fps=fps)
-    video_write_kwargs = {"codec": "libx264", "threads": threads, "bitrate": "8M"}
+    video_write_kwargs = {"codec": "libx264", "threads": threads}
 
     # Add audio
     if audio_path:
