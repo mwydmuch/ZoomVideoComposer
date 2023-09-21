@@ -36,6 +36,7 @@ from helpers import *
 
 VERSION = "0.3.2"
 
+
 @click.command()
 @click.argument(
     "image_paths",
@@ -200,6 +201,13 @@ VERSION = "0.3.2"
     help="Resume generation of the video.",
     show_default=True,
 )
+@click.option(
+    "--blend-images-only",
+    is_flag=True,
+    default=False,
+    help="Stops after blending the images. Inspecting the blend images is useful to inspect any image-shifts or other artefacts before generating the video.",
+    show_default=True,
+)
 def zoom_video_composer_cli(
     image_paths,
     audio_path=None,
@@ -222,6 +230,7 @@ def zoom_video_composer_cli(
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
     resume=False,
+    blend_images_only=False,
 ):
     """Compose a zoom video from multiple provided images."""
     zoom_video_composer(
@@ -246,6 +255,7 @@ def zoom_video_composer_cli(
         skip_video_generation,
         image_engine,
         resume,
+        blend_images_only,
     )
 
 
@@ -271,10 +281,11 @@ def zoom_video_composer(
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
     resume=False,
+    blend_images_only=False,
     logger=click.echo,
 ):
     """Compose a zoom video from multiple provided images."""
-    video_params = f'zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}'
+    video_params = f"zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}"
     logger(f"Starting zoom video composition with parameters:\n{video_params}")
 
     # Read images
@@ -309,6 +320,30 @@ def zoom_video_composer(
     logger(f"Blending {len(images)} images ...")
     images = blend_images(images, margin, zoom, resampling_func)
 
+    # Stop here if only blending images
+    if blend_images_only:
+        # Find a folder for the blend images
+        blend_images_path = os.path.join(tmp_dir_hash, "blend")
+        if not os.path.exists(blend_images_path):
+            os.makedirs(blend_images_path, exist_ok=True)
+
+        for i, image in enumerate(images):
+            img_i = len(images) - i
+            image_path = os.path.join(blend_images_path, f"blend_{img_i:06d}.png")
+            # Remove blend area, that should not be inspected
+            margin_relaxed = margin * 2
+            image_cropped = image.crop(
+                (
+                    margin_relaxed,
+                    margin_relaxed,
+                    image.width - margin_relaxed,
+                    image.height - margin_relaxed,
+                )
+            )
+            image_cropped.save(image_path)
+        logger(f"Blend images written to {os.path.abspath(blend_images_path)}")
+        return
+
     # Create frames
     n_jobs = threads if threads > 0 else cpu_count() - threads
     logger(f"Creating frames in {n_jobs} threads ...")
@@ -339,12 +374,14 @@ def zoom_video_composer(
         ]
         try:
             completed = concurrent.futures.as_completed(futures)
-            for _ in tqdm(range(num_frames - start_frame), desc="Generating the frames"):
+            for _ in tqdm(
+                range(num_frames - start_frame), desc="Generating the frames"
+            ):
                 completed.__next__()
         except KeyboardInterrupt:
             executor.shutdown(wait=False, cancel_futures=True)
             raise
-    
+
     # Images are no longer needed
     del images
 

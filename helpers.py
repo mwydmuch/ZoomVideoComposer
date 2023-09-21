@@ -100,6 +100,7 @@ class ImagePIL(ImageWrapper):
 
 # Easing and resampling functions
 
+
 # Gennerat family of power-based easing functions
 def get_ease_pow_in(power, **kwargs):
     return lambda x: pow(x, power)
@@ -118,19 +119,23 @@ def get_ease_pow_in_out(power, **kwargs):
 
 
 # Returns an linear easing function with in and out ease
-# This is useful for very long animations 
+# This is useful for very long animations
 # where you want a steady zoom speed but still start and stop smoothly.
 def get_linear_with_in_out_ease(ease_duration, **kwargs):
     # fraction defines both the x and y of the 'square' in which the easing takes place
     ease_duration_scale = 1 / ease_duration
+
     def linear_ease_in_out(x):
         if x < ease_duration:
             return (x * ease_duration_scale) ** 2 / ease_duration_scale / 2
         elif x > (1 - ease_duration):
             return 1 - ((1 - x) * ease_duration_scale) ** 2 / ease_duration_scale / 2
         else:
-            return (x - ease_duration) * (1 - ease_duration) / (1 - 2 * ease_duration) + ease_duration / 2
-    return linear_ease_in_out      
+            return (x - ease_duration) * (1 - ease_duration) / (
+                1 - 2 * ease_duration
+            ) + ease_duration / 2
+
+    return linear_ease_in_out
 
 
 EASING_FUNCTIONS = {
@@ -152,6 +157,7 @@ EASING_FUNCTIONS = {
 DEFAULT_EASING_KEY = "easeInOutSine"
 DEFAULT_EASING_POWER = 1.5
 DEFAULT_EASE_DURATION = 0.02
+
 
 def get_easing_function(easing, power, ease_duration):
     easing_func = EASING_FUNCTIONS.get(easing, None)
@@ -360,7 +366,7 @@ def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path, th
         os.path.join(tmp_dir_hash, f"{i:06d}.png") for i in range(num_frames)
     ]
     video_clip = ImageSequenceClip(image_files, fps=fps)
-    video_write_kwargs = {"codec": "libx264", "threads": threads}
+    video_write_kwargs = {"codec": "libx264", "threads": threads, "bitrate": "8M"}
 
     # Add audio
     if audio_path:
