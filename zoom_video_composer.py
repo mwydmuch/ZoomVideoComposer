@@ -205,7 +205,7 @@ VERSION = "0.3.2"
     "--blend-images-only",
     is_flag=True,
     default=False,
-    help="Stops after blending the images. Inspecting the blend images is useful to inspect any image-shifts or other artefacts before generating the video.",
+    help="Stops after blending the images. Inspecting the blend images is useful to detect any image-shifts or other artefacts before generating the video.",
     show_default=True,
 )
 def zoom_video_composer_cli(
