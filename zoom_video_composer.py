@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# zoom_video_composer.py v0.3.2
+# ZoomVideoComposer
 # https://github.com/mwydmuch/ZoomVideoComposer
 
 # Copyright (c) 2023 Marek Wydmuch and the respective contributors
@@ -35,7 +35,7 @@ from tqdm import tqdm
 
 from helpers import *
 
-VERSION = "0.3.2"
+VERSION = "0.4.0"
 
 
 @click.command()

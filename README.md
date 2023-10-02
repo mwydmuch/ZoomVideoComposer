@@ -44,7 +44,7 @@ Usage: zoom_video_composer.py [OPTIONS] IMAGE_PATHS...
   Compose a zoom video from multiple provided images.
 
 Options:
-  -a, --audio_path FILE           Audio file path that will be added to the
+  -a, --audio-path FILE           Audio file path that will be added to the
                                   video.
   -z, --zoom FLOAT                Zoom factor/ratio between images.  [default:
                                   2.0]
@@ -58,7 +58,7 @@ Options:
   --ease-duration FLOAT           Duration of easing in linearWithInOutEase as
                                   a fraction of video duration.  [default:
                                   0.02]
-  -r, --direction [in|out|inout|outin]
+  -D, --direction [in|out|inout|outin]
                                   Zoom direction. Inout and outin combine both
                                   directions.  [default: out]
   -f, --fps INTEGER               Frames per second of the output video.
@@ -74,11 +74,11 @@ Options:
   -s, --resampling [nearest|box|bilinear|hamming|bicubic|lanczos]
                                   Resampling technique to use when resizing
                                   images.  [default: lanczos]
-  -ss, --supersample FLOAT        Supersamples (scales) the images by this
-                                  factor. A value > 1 will increase the
-                                  smoothness of the animation, but will also
-                                  increase the duration of the rendering.
-                                  [default: 1]
+  -S, --super-sampling FLOAT      Scales the images by the provided factor.
+                                  Values > 1 may increase the smoothness of
+                                  the animation, when using very slow zooms.
+                                  They increase the duration of the rendering.
+                                  [default: 1.0]
   -m, --margin FLOAT              Size of the margin to cut from the edges of
                                   each image for better blending with the
                                   next/previous image. Values > 1 are
@@ -106,10 +106,11 @@ Options:
                                   [default: cv2]
   --resume                        Resume generation of the video.  [default:
                                   False]
-  --blend-images-only             Stops after blending the images. Inspecting
-                                  the blend images is useful to detect any
-                                  image-shifts or other artefacts before
-                                  generating the video. [default: False]
+  --blend-images-only             Stops after blending the input images.
+                                  Inspecting the blended images is useful to
+                                  detect any image-shifts or other artefacts
+                                  before generating the video.  [default:
+                                  False]
   --help                          Show this message and exit.
 ```
 
