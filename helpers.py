@@ -321,6 +321,13 @@ def blend_images(images, margin, zoom, resampling_func):
     return images
 
 
+def resize_images(images, resize_factor, resampling_func):
+    for i, image in enumerate(images):
+        images[i] = image.resize_scale(resize_factor, resampling_func)
+
+    return images
+
+
 def process_frame(
     i,
     images,
@@ -389,7 +396,7 @@ def create_video_clip(output_path, fps, num_frames, tmp_dir_hash, audio_path, th
         logger=TqdmProgressBarLogger(
             bars={
                 "t": {
-                    "title": "Writting the movie file",
+                    "title": "Writing the movie file",
                     "total": num_frames,
                     "message": None,
                     "index": -1,

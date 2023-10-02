@@ -26,6 +26,7 @@
 import concurrent
 import os
 import shutil
+import time
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import md5
 from multiprocessing import cpu_count
@@ -46,7 +47,7 @@ VERSION = "0.3.2"
 )
 @click.option(
     "-a",
-    "--audio_path",
+    "--audio-path",
     type=click.Path(exists=True, dir_okay=False),
     default=None,
     help="Audio file path that will be added to the video.",
@@ -90,7 +91,7 @@ VERSION = "0.3.2"
     show_default=True,
 )
 @click.option(
-    "-r",
+    "-D",
     "--direction",
     type=click.Choice(["in", "out", "inout", "outin"]),
     default="out",
@@ -129,6 +130,15 @@ VERSION = "0.3.2"
     type=click.Choice(list(RESAMPLING_FUNCTIONS_PIL.keys())),
     default=DEFAULT_RESAMPLING_KEY,
     help="Resampling technique to use when resizing images.",
+    show_default=True,
+)
+@click.option(
+    "-S",
+    "--super-sampling",
+    type=float,
+    default=1.0,
+    help="Scales the images by the provided factor. Values > 1 may increase the smoothness of the animation, "
+    "when using very slow zooms. They increase the duration of the rendering.",
     show_default=True,
 )
 @click.option(
@@ -223,6 +233,7 @@ def zoom_video_composer_cli(
     width=1,
     height=1,
     resampling=DEFAULT_RESAMPLING_KEY,
+    super_sampling=1.0,
     margin=0.05,
     output="output.mp4",
     threads=-1,
@@ -248,6 +259,7 @@ def zoom_video_composer_cli(
         width,
         height,
         resampling,
+        super_sampling,
         margin,
         output,
         threads,
@@ -274,6 +286,7 @@ def zoom_video_composer(
     width=1,
     height=1,
     resampling=DEFAULT_RESAMPLING_KEY,
+    super_sampling=1.0,
     margin=0.05,
     output="output.mp4",
     threads=-1,
@@ -285,8 +298,10 @@ def zoom_video_composer(
     blend_images_only=False,
     logger=click.echo,
 ):
+    start_time = time.time()
+
     """Compose a zoom video from multiple provided images."""
-    video_params = f"zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}"
+    video_params = f"zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}, super_sampling={super_sampling}"
     logger(f"Starting zoom video composition with parameters:\n{video_params}")
 
     # Read images
@@ -321,13 +336,9 @@ def zoom_video_composer(
     logger(f"Blending {len(images)} images ...")
     images = blend_images(images, margin, zoom, resampling_func)
 
-    # Stop here if only blending images
-    if blend_images_only:
-        blended_images_path = os.path.join(tmp_dir_hash, "blended_images")
-        images = images_reverse(images, direction, False)
-        save_images(images, blended_images_path, files_prefix="blended_")
-        logger(f"Blended images written to {blended_images_path}. All done!")
-        return
+    if super_sampling != 1.0:
+        logger(f"Super sampling images {super_sampling} ...")
+        images = resize_images(images, super_sampling, resampling_func)
 
     # Create frames
     n_jobs = threads if threads > 0 else cpu_count() - threads
@@ -371,12 +382,12 @@ def zoom_video_composer(
     del images
 
     # Create video clip using images in tmp dir and audio if provided
-    logger(f"Writting video in {n_jobs} threads to: {output} ...")
     if skip_video_generation:
         logger("Skipping video generation. All done!")
         return
 
     else:
+        logger(f"Writting video in {n_jobs} threads to: {output} ...")
         create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
 
         # Remove tmp dir
@@ -386,9 +397,9 @@ def zoom_video_composer(
             if not os.listdir(tmp_dir):
                 os.rmdir(tmp_dir)
 
+        logger(f"Total time: {round(time.time() - start_time, 2)}s")
         logger("All done!")
         return output
-
 
 if __name__ == "__main__":
     zoom_video_composer_cli()

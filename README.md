@@ -74,6 +74,11 @@ Options:
   -s, --resampling [nearest|box|bilinear|hamming|bicubic|lanczos]
                                   Resampling technique to use when resizing
                                   images.  [default: lanczos]
+  -ss, --supersample FLOAT        Supersamples (scales) the images by this
+                                  factor. A value > 1 will increase the
+                                  smoothness of the animation, but will also
+                                  increase the duration of the rendering.
+                                  [default: 1]
   -m, --margin FLOAT              Size of the margin to cut from the edges of
                                   each image for better blending with the
                                   next/previous image. Values > 1 are
