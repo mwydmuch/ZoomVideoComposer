@@ -251,6 +251,15 @@ def read_images(image_paths, logger, image_engine=DEFAULT_IMAGE_ENGINE):
     return images
 
 
+def save_images(images, output_dir, files_prefix="", start_i=0):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    for i, image in enumerate(images):
+        image_path = os.path.join(output_dir, f"{files_prefix}{i + start_i:06d}.png")
+        image.save(image_path)
+
+
 def get_image_paths(input_paths):
     image_paths = []
     for path in input_paths:

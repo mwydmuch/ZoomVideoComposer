@@ -211,6 +211,14 @@ VERSION = "0.3.2"
     help="Resume generation of the video.",
     show_default=True,
 )
+@click.option(
+    "--blend-images-only",
+    is_flag=True,
+    default=False,
+    help="Stops after blending the input images. "
+    "Inspecting the blended images is useful to detect any image-shifts or other artefacts before generating the video.",
+    show_default=True,
+)
 def zoom_video_composer_cli(
     image_paths,
     audio_path=None,
@@ -234,6 +242,7 @@ def zoom_video_composer_cli(
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
     resume=False,
+    blend_images_only=False,
 ):
     """Compose a zoom video from multiple provided images."""
     zoom_video_composer(
@@ -259,6 +268,7 @@ def zoom_video_composer_cli(
         skip_video_generation,
         image_engine,
         resume,
+        blend_images_only,
     )
 
 
@@ -285,14 +295,13 @@ def zoom_video_composer(
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
     resume=False,
+    blend_images_only=False,
     logger=click.echo,
 ):
     start_time = time.time()
 
     """Compose a zoom video from multiple provided images."""
-    video_params = f"zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, "
-    f"ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, "
-    f"width={width}, height={height}, super_sampling={super_sampling}"
+    video_params = f"zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}, super_sampling={super_sampling}"
     logger(f"Starting zoom video composition with parameters:\n{video_params}")
 
     # Read images
@@ -373,20 +382,24 @@ def zoom_video_composer(
     del images
 
     # Create video clip using images in tmp dir and audio if provided
-    logger(f"Writing video in {n_jobs} threads to: {output} ...")
-    create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
+    if skip_video_generation:
+        logger("Skipping video generation. All done!")
+        return
 
-    # Remove tmp dir
-    if not keep_frames and not skip_video_generation:
-        logger(f"Removing temporary directory: {tmp_dir_hash} ...")
-        shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
-        if not os.listdir(tmp_dir):
-            os.rmdir(tmp_dir)
+    else:
+        logger(f"Writting video in {n_jobs} threads to: {output} ...")
+        create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
 
-    logger(f"Total time: {round(time.time() - start_time, 2)}s")
-    logger("Done!")
-    return output
+        # Remove tmp dir
+        if not keep_frames:
+            logger(f"Removing temporary directory: {tmp_dir_hash} ...")
+            shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
+            if not os.listdir(tmp_dir):
+                os.rmdir(tmp_dir)
 
+        logger(f"Total time: {round(time.time() - start_time, 2)}s")
+        logger("All done!")
+        return output
 
 if __name__ == "__main__":
     zoom_video_composer_cli()

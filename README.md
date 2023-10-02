@@ -106,6 +106,10 @@ Options:
                                   [default: cv2]
   --resume                        Resume generation of the video.  [default:
                                   False]
+  --blend-images-only             Stops after blending the images. Inspecting
+                                  the blend images is useful to detect any
+                                  image-shifts or other artefacts before
+                                  generating the video. [default: False]
   --help                          Show this message and exit.
 ```
 
@@ -174,6 +178,7 @@ Repeat until you get the desired number of images.
 - [Concept Trailer "A.I. Noir - Berlin City Crime Stories"](https://www.youtube.com/watch?v=7rAQjomKSPo) (long - 2m00)
 - [Black and white (and 3 more)](https://www.reddit.com/r/midjourney/comments/14x2l6a/zoom_out_animations_collection/)
 - [Platypus at the end of the world (and 2 more)](https://www.reddit.com/r/midjourney/comments/14yv90n/zoom_out_animations_lt35_universe_trip_down_the/)
+- [Midjourney Seamless Zoom Loop](https://www.youtube.com/shorts/WQx3tBoBhBY)
 
 Add your animations here by creating a pull request.
 
