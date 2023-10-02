@@ -166,3 +166,4 @@ cython_debug/
 tmp
 *.mp4
 
+.vscode

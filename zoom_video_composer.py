@@ -36,6 +36,7 @@ from helpers import *
 
 VERSION = "0.3.2"
 
+
 @click.command()
 @click.argument(
     "image_paths",
@@ -200,6 +201,14 @@ VERSION = "0.3.2"
     help="Resume generation of the video.",
     show_default=True,
 )
+@click.option(
+    "--blend-images-only",
+    is_flag=True,
+    default=False,
+    help="Stops after blending the input images. "
+    "Inspecting the blended images is useful to detect any image-shifts or other artefacts before generating the video.",
+    show_default=True,
+)
 def zoom_video_composer_cli(
     image_paths,
     audio_path=None,
@@ -222,6 +231,7 @@ def zoom_video_composer_cli(
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
     resume=False,
+    blend_images_only=False,
 ):
     """Compose a zoom video from multiple provided images."""
     zoom_video_composer(
@@ -246,6 +256,7 @@ def zoom_video_composer_cli(
         skip_video_generation,
         image_engine,
         resume,
+        blend_images_only,
     )
 
 
@@ -271,10 +282,11 @@ def zoom_video_composer(
     skip_video_generation=False,
     image_engine=DEFAULT_IMAGE_ENGINE,
     resume=False,
+    blend_images_only=False,
     logger=click.echo,
 ):
     """Compose a zoom video from multiple provided images."""
-    video_params = f'zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}'
+    video_params = f"zoom={zoom}, fps={fps}, dur={duration}, easing={easing}, easing_power={easing_power}, ease_duration={ease_duration}, direction={direction}, resampling={resampling}, margin={margin}, width={width}, height={height}"
     logger(f"Starting zoom video composition with parameters:\n{video_params}")
 
     # Read images
@@ -309,6 +321,14 @@ def zoom_video_composer(
     logger(f"Blending {len(images)} images ...")
     images = blend_images(images, margin, zoom, resampling_func)
 
+    # Stop here if only blending images
+    if blend_images_only:
+        blended_images_path = os.path.join(tmp_dir_hash, "blended_images")
+        images = images_reverse(images, direction, False)
+        save_images(images, blended_images_path, files_prefix="blended_")
+        logger(f"Blended images written to {blended_images_path}. All done!")
+        return
+
     # Create frames
     n_jobs = threads if threads > 0 else cpu_count() - threads
     logger(f"Creating frames in {n_jobs} threads ...")
@@ -339,28 +359,35 @@ def zoom_video_composer(
         ]
         try:
             completed = concurrent.futures.as_completed(futures)
-            for _ in tqdm(range(num_frames - start_frame), desc="Generating the frames"):
+            for _ in tqdm(
+                range(num_frames - start_frame), desc="Generating the frames"
+            ):
                 completed.__next__()
         except KeyboardInterrupt:
             executor.shutdown(wait=False, cancel_futures=True)
             raise
-    
+
     # Images are no longer needed
     del images
 
     # Create video clip using images in tmp dir and audio if provided
     logger(f"Writting video in {n_jobs} threads to: {output} ...")
-    create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
+    if skip_video_generation:
+        logger("Skipping video generation. All done!")
+        return
 
-    # Remove tmp dir
-    if not keep_frames and not skip_video_generation:
-        logger(f"Removing temporary directory: {tmp_dir_hash} ...")
-        shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
-        if not os.listdir(tmp_dir):
-            os.rmdir(tmp_dir)
+    else:
+        create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
 
-    logger("Done!")
-    return output
+        # Remove tmp dir
+        if not keep_frames:
+            logger(f"Removing temporary directory: {tmp_dir_hash} ...")
+            shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
+            if not os.listdir(tmp_dir):
+                os.rmdir(tmp_dir)
+
+        logger("All done!")
+        return output
 
 
 if __name__ == "__main__":
