@@ -312,14 +312,9 @@ def blend_images(images, margin, zoom, resampling_func):
     return images
 
 
-def resize_all_images(images, resize_factor, resampling_func):
-    if resize_factor == 1.0:
-        return images
-
-    for i in range(0, len(images)):
-        image = images[i]
-        image = image.resize_scale(resize_factor, resampling_func)
-        images[i] = image
+def resize_images(images, resize_factor, resampling_func):
+    for i, image in enumerate(images):
+        images[i] = image.resize_scale(resize_factor, resampling_func)
 
     return images
 
