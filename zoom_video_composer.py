@@ -205,7 +205,8 @@ VERSION = "0.3.2"
     "--blend-images-only",
     is_flag=True,
     default=False,
-    help="Stops after blending the images. Inspecting the blend images is useful to detect any image-shifts or other artefacts before generating the video.",
+    help="Stops after blending the input images. "
+    "Inspecting the blended images is useful to detect any image-shifts or other artefacts before generating the video.",
     show_default=True,
 )
 def zoom_video_composer_cli(
@@ -322,26 +323,10 @@ def zoom_video_composer(
 
     # Stop here if only blending images
     if blend_images_only:
-        # Find a folder for the blend images
-        blend_images_path = os.path.join(tmp_dir_hash, "blend")
-        if not os.path.exists(blend_images_path):
-            os.makedirs(blend_images_path, exist_ok=True)
-
-        for i, image in enumerate(images):
-            img_i = len(images) - i
-            image_path = os.path.join(blend_images_path, f"blend_{img_i:06d}.png")
-            # Remove blend area, that should not be inspected
-            margin_relaxed = margin * 2
-            image_cropped = image.crop(
-                (
-                    margin_relaxed,
-                    margin_relaxed,
-                    image.width - margin_relaxed,
-                    image.height - margin_relaxed,
-                )
-            )
-            image_cropped.save(image_path)
-        logger(f"Blend images written to {os.path.abspath(blend_images_path)}")
+        blended_images_path = os.path.join(tmp_dir_hash, "blended_images")
+        images = images_reverse(images, direction, False)
+        save_images(images, blended_images_path, files_prefix="blended_")
+        logger(f"Blended images written to {blended_images_path}. All done!")
         return
 
     # Create frames
@@ -387,17 +372,22 @@ def zoom_video_composer(
 
     # Create video clip using images in tmp dir and audio if provided
     logger(f"Writting video in {n_jobs} threads to: {output} ...")
-    create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
+    if skip_video_generation:
+        logger("Skipping video generation. All done!")
+        return
 
-    # Remove tmp dir
-    if not keep_frames and not skip_video_generation:
-        logger(f"Removing temporary directory: {tmp_dir_hash} ...")
-        shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
-        if not os.listdir(tmp_dir):
-            os.rmdir(tmp_dir)
+    else:
+        create_video_clip(output, fps, num_frames, tmp_dir_hash, audio_path, n_jobs)
 
-    logger("Done!")
-    return output
+        # Remove tmp dir
+        if not keep_frames:
+            logger(f"Removing temporary directory: {tmp_dir_hash} ...")
+            shutil.rmtree(tmp_dir_hash, ignore_errors=False, onerror=None)
+            if not os.listdir(tmp_dir):
+                os.rmdir(tmp_dir)
+
+        logger("All done!")
+        return output
 
 
 if __name__ == "__main__":
