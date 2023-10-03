@@ -119,13 +119,13 @@ Options:
 Run in the root directory of the repository to generate an example video from the images in the `example` directory, a duration of 20 seconds that first zooms out and then zooms back in. The video will be saved in the `example_output.mp4` file.
 
 ```
-python zoom_video_composer.py example -o example_output.mp4 -d 20 -r outin -e easeInOutSine
+python zoom_video_composer.py example -o example_output.mp4 -d 20 -D outin -e easeInOutSine
 ```
 
 This example takes around 3 minutes to run on my Macbook Air M2. It can be speeded up by reducing the resolution of the output video and selecting faster resampling techniques like `bilinear`. The command below takes around 30 seconds to run on my Macbook Air M2, and can be used for a preview of the video before generating the final version (it reduces resolution to 512x512, framerate to 10 fps and uses a faster resampling technique).
 
 ```
-python zoom_video_composer.py example -o example_output_faster.mp4 -d 20 -r outin -e easeInOutSine -f 10 -w 512 -h 512 -s bilinear
+python zoom_video_composer.py example -o example_output_faster.mp4 -d 20 -D outin -e easeInOutSine -f 10 -w 512 -h 512 -s bilinear
 ```
 
 ## Video tutorial and Google Colab for online use online
