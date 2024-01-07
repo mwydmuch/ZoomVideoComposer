@@ -336,6 +336,14 @@ def zoom_video_composer(
     logger(f"Blending {len(images)} images ...")
     images = blend_images(images, margin, zoom, resampling_func)
 
+    # Stop here if only blending images
+    if blend_images_only:
+        blended_images_path = os.path.join(tmp_dir_hash, "blended_images")
+        images = images_reverse(images, direction, False)
+        save_images(images, blended_images_path, files_prefix="blended_")
+        logger(f"Blended images written to {blended_images_path}. All done!")
+        return
+
     if super_sampling != 1.0:
         logger(f"Super sampling images {super_sampling} ...")
         images = resize_images(images, super_sampling, resampling_func)
